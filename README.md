@@ -28,6 +28,10 @@ npm install
 npm run dev
 ```
 
+---
+*Versione: 1.0.1 - Database integrato*
+
+
 ## Tecnologie Sviluppate
 *   React
 *   Vite

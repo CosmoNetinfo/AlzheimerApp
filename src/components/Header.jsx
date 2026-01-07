@@ -1,4 +1,5 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
+import { Settings } from 'lucide-react';
 
 const Header = ({ title }) => {
     const styles = {
@@ -11,7 +12,7 @@ const Header = ({ title }) => {
             backgroundColor: 'var(--color-bg-primary)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: 'center', // Center title by default
             borderBottom: '1px solid var(--color-border)',
             zIndex: 100,
             padding: '0 16px',
@@ -19,12 +20,24 @@ const Header = ({ title }) => {
         title: {
             fontSize: '22px',
             color: 'var(--color-text-primary)',
+            fontWeight: 'bold'
+        },
+        settingsBtn: {
+            position: 'absolute',
+            right: '16px',
+            background: 'none',
+            border: 'none',
+            color: 'var(--color-primary)',
+            cursor: 'pointer'
         }
     };
 
     return (
         <header style={styles.header}>
             <h1 style={styles.title}>{title}</h1>
+            <Link to="/impostazioni" style={styles.settingsBtn}>
+                <Settings />
+            </Link>
         </header>
     );
 };

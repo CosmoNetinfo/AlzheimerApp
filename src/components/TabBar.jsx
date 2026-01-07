@@ -27,7 +27,7 @@ const TabBar = () => {
                 className={({ isActive }) => `${styles.tab} ${isActive ? styles.active : ''}`}
             >
                 <Users size={32} />
-                <span className={styles.label}>Amici</span>
+                <span className={styles.label}>Social</span>
             </NavLink>
         </nav>
     );

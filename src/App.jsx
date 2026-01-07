@@ -5,10 +5,19 @@ import ListPage from './pages/ListPage';
 import ChatPage from './pages/ChatPage';
 import FeedPage from './pages/FeedPage';
 import LoginPage from './pages/LoginPage';
+import SettingsPage from './pages/SettingsPage';
 
 function App() {
-    // Controllo semplice dell'autenticazione
-    const isAuthenticated = !!localStorage.getItem('alzheimer_user');
+    const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem('alzheimer_user'));
+
+    // Ascolta cambiamenti al localStorage (es. login/logout)
+    React.useEffect(() => {
+        const checkAuth = () => {
+            setIsAuthenticated(!!localStorage.getItem('alzheimer_user'));
+        };
+        window.addEventListener('storage', checkAuth);
+        return () => window.removeEventListener('storage', checkAuth);
+    }, []);
 
     return (
         <BrowserRouter>
@@ -19,6 +28,7 @@ function App() {
                     <Route index element={<ListPage />} />
                     <Route path="chat" element={<ChatPage />} />
                     <Route path="feed" element={<FeedPage />} />
+                    <Route path="impostazioni" element={<SettingsPage />} />
                 </Route>
             </Routes>
         </BrowserRouter>

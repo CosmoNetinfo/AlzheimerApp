@@ -1,24 +1,19 @@
 :root {
-  /* Airalzh Brand Colors (Approximate) */
-  --color-primary: #592D85;
-  /* Deep Purple */
-  --color-primary-light: #7B4FA8;
-  --color-accent: #FDB913;
-  /* Warm Yellow/Gold */
-  --color-accent-hover: #E5A810;
+  /* Airalzh Brand Colors (Official) */
+  --color-primary: #4a304f; /* Prugna scuro */
+  --color-primary-light: #8b6d91; /* Viola medio */
+  --color-primary-lighter: #b697bd; /* Lilla */
+  --color-accent: #fdb913; /* Giallo Oro Airalzh */
 
-  --color-bg-primary: #f9fafb;
-  /* Light Gray for background */
-  --color-bg-secondary: #ffffff;
-  /* White for cards/lists */
-  --color-text-primary: #1F2937;
-  /* Dark Grey */
-  --color-text-secondary: #4B5563;
-  /* Medium Grey */
+  --color-bg-primary: #f7f3fa; /* Sfondo lilla chiarissimo */
+  --color-bg-white: #ffffff;
 
-  --color-action: var(--color-primary);
+  --color-text-primary: #2d1f30; /* Testo prugna quasi nero */
+  --color-text-secondary: #6b7280;
+
   --color-success: #34c759;
-  --color-border: #E5E7EB;
+  --color-error: #ff3b30;
+  --color-border: #e5e7eb;
 
   /* Spacing & Sizes */
   --tab-bar-height: 84px;
@@ -33,7 +28,8 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   font-size: 18px;
@@ -73,4 +69,15 @@ button {
   cursor: pointer;
   border: none;
   font-family: inherit;
+}
+
+/* Accessibility */
+.large-text-mode {
+  font-size: 24px !important;
+}
+
+.large-text-mode button,
+.large-text-mode input,
+.large-text-mode .tab-label {
+  font-size: 1.2em !important;
 }

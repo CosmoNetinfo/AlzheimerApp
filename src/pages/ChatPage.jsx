@@ -1,23 +1,74 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send } from 'lucide-react';
+import { supabase } from '../supabaseClient';
 
 const ChatPage = () => {
-    const [messages, setMessages] = useState([
-        { id: 1, text: "Ciao nonna! Come stai?", sender: "other", time: "10:30" },
-        { id: 2, text: "Tutto bene caro, tu?", sender: "me", time: "10:32" },
-        { id: 3, text: "Benissimo, stasera passo a trovarti!", sender: "other", time: "10:33" },
-    ]);
+    const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState("");
+    const [loading, setLoading] = useState(true);
 
-    const handleSend = () => {
+    // Recupera utente corrente
+    const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{}');
+    const currentUserId = user.name || 'Guest';
+
+    // Carica messaggi iniziali
+    useEffect(() => {
+        fetchMessages();
+
+        // Subscribe a nuovi messaggi in tempo reale
+        const channel = supabase
+            .channel('messages')
+            .on('postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'messages' },
+                (payload) => {
+                    setMessages(prev => [...prev, {
+                        id: payload.new.id,
+                        text: payload.new.text,
+                        sender: payload.new.sender_id === currentUserId ? 'me' : 'other',
+                        senderName: payload.new.sender_name,
+                        time: new Date(payload.new.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+                    }]);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [currentUserId]);
+
+    const fetchMessages = async () => {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (!error && data) {
+            setMessages(data.map(msg => ({
+                id: msg.id,
+                text: msg.text,
+                sender: msg.sender_id === currentUserId ? 'me' : 'other',
+                senderName: msg.sender_name,
+                time: new Date(msg.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+            })));
+        }
+        setLoading(false);
+    };
+
+    const handleSend = async () => {
         if (!inputText.trim()) return;
-        setMessages([...messages, {
-            id: Date.now(),
-            text: inputText,
-            sender: "me",
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }]);
-        setInputText("");
+
+        const { error } = await supabase
+            .from('messages')
+            .insert([{
+                text: inputText,
+                sender_name: user.name + ' ' + (user.surname || ''),
+                sender_id: currentUserId
+            }]);
+
+        if (!error) {
+            setInputText("");
+        }
     };
 
     const styles = {
@@ -82,11 +133,18 @@ const ChatPage = () => {
         }
     };
 
+    if (loading) {
+        return <div style={{ ...styles.container, justifyContent: 'center', alignItems: 'center' }}>
+            <div>Caricamento chat...</div>
+        </div>;
+    }
+
     return (
         <div style={styles.container}>
             <div style={styles.messageList}>
                 {messages.map(msg => (
                     <div key={msg.id} style={styles.messageBubble(msg.sender)}>
+                        {msg.sender === 'other' && <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{msg.senderName}</div>}
                         <div style={styles.messageText}>{msg.text}</div>
                         <div style={styles.messageTime}>{msg.time}</div>
                     </div>

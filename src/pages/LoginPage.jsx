@@ -41,7 +41,7 @@ const LoginPage = () => {
             justifyContent: 'center',
             minHeight: '100vh',
             padding: '20px',
-            backgroundColor: '#f2f2f7',
+            backgroundColor: 'var(--color-bg-primary)', // Lilla chiaro
             textAlign: 'center'
         },
         photoContainer: {
@@ -124,8 +124,8 @@ const LoginPage = () => {
 
     return (
         <div style={styles.container}>
-            <h1 style={styles.title}>Benvenuto!</h1>
-            <p style={styles.subtitle}>Configuriamo il tuo profilo</p>
+            <h1 style={styles.title}>Ciao!</h1>
+            <p style={styles.subtitle}>Chi sei?</p>
 
             <label style={styles.photoContainer}>
                 <div style={styles.photoPlaceholder}>
