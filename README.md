@@ -54,4 +54,4 @@ npm run dev
 ```
 
 ---
-*Sviluppato con dedizione per migliorare la qualità della vita quotidiana attraverso la tecnologia.*
+*Sviluppato con dedizione da **Daniele Spalletti** ([cosmonet.info](https://www.cosmonet.info)) per migliorare la qualità della vita quotidiana attraverso la tecnologia.*

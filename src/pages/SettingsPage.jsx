@@ -156,8 +156,9 @@ const SettingsPage = () => {
         Esci dall'Account
       </button>
 
-      <div style={{ textAlign: "center", marginTop: "40px", color: "#888", fontSize: "12px" }}>
-        Memora x Airalzh &copy; 2026
+      <div style={{ textAlign: "center", marginTop: "40px", color: "#888", fontSize: "12px", lineHeight: "1.6" }}>
+        Memora x Airalzh &copy; 2026<br />
+        Sviluppato da <strong>Daniele Spalletti</strong> di <a href="https://www.cosmonet.info" target="_blank" style={{color: '#888', textDecoration: 'underline'}}>cosmonet.info</a>
       </div>
     </div>
   );
