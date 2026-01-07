@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Heart, MessageSquare, Share2, Image as ImageIcon, ThumbsUp, Send } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Heart, MessageSquare, Share2, Image as ImageIcon, ThumbsUp, Send, X } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 const FeedPage = () => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [newPostText, setNewPostText] = useState('');
+    const [selectedImage, setSelectedImage] = useState(null);
     const [dbWorking, setDbWorking] = useState(true);
+    const fileInputRef = useRef(null);
 
     const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{"name":"Utente"}');
 
-    // Dati di esempio se il DB non risponde o è vuoto
+    // Dati di esempio
     const mockPosts = [
         {
             id: 'm1',
@@ -18,7 +20,7 @@ const FeedPage = () => {
             text: 'Oggi ho fatto una bellissima passeggiata al parco. Il sole era caldissimo! ☀️',
             created_at: new Date(Date.now() - 3600000).toISOString(),
             likes: 12,
-            hasPhoto: true
+            image: null
         },
         {
             id: 'm2',
@@ -26,14 +28,13 @@ const FeedPage = () => {
             text: 'Qualcuno sa quando sarà la prossima festa in centro? Mi piacerebbe molto andare.',
             created_at: new Date(Date.now() - 7200000).toISOString(),
             likes: 5,
-            hasPhoto: false
+            image: null
         }
     ];
 
     useEffect(() => {
         fetchPosts();
 
-        // Subscribe a nuovi post in tempo reale (se supabase è configurato)
         let channel;
         try {
             channel = supabase
@@ -75,34 +76,51 @@ const FeedPage = () => {
         setLoading(false);
     };
 
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setSelectedImage(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const createPost = async () => {
-        if (!newPostText.trim()) return;
+        if (!newPostText.trim() && !selectedImage) return;
 
         const newPostObj = {
             author: user.name + ' ' + (user.surname || ''),
             text: newPostText,
             likes: 0,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            image: selectedImage // Salviamo l'immagine come base64 nel DB per semplicità (attenzione ai limiti di dimensione)
         };
 
-        // Ottimistico: aggiungiamo subito alla lista locale
+        // Ottimistico
         setPosts(prev => [newPostObj, ...prev]);
         setNewPostText('');
+        setSelectedImage(null);
 
         try {
             const { error } = await supabase
                 .from('posts')
                 .insert([newPostObj]);
             
-            if (error) console.error("Error saving to DB, kept locally");
+            if (error) {
+                console.error("Error saving to DB, kept locally:", error);
+                // Se l'errore è dovuto alla dimensione dell'immagine (base64 troppo lunga), 
+                // in un'app reale useremmo Supabase Storage.
+            }
         } catch (e) {
-            console.error("DB Error");
+            console.error("DB Error:", e);
         }
     };
 
     const styles = {
         container: {
-            backgroundColor: '#F0F2F5', // Facebook Light Gray
+            backgroundColor: '#F0F2F5',
             minHeight: '100%',
             padding: '12px 0 100px 0',
         },
@@ -118,8 +136,6 @@ const FeedPage = () => {
             gap: '12px',
             alignItems: 'center',
             marginBottom: '12px',
-            borderBottom: '1px solid #E4E6EB',
-            paddingBottom: '12px',
         },
         avatarSmall: {
             width: '40px',
@@ -143,9 +159,35 @@ const FeedPage = () => {
             fontSize: '16px',
             outline: 'none',
         },
+        previewContainer: {
+            position: 'relative',
+            margin: '10px 0',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            border: '1px solid #ddd'
+        },
+        previewImage: {
+            width: '100%',
+            maxHeight: '300px',
+            objectFit: 'cover',
+            display: 'block'
+        },
+        removeImage: {
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            color: 'white',
+            borderRadius: '50%',
+            padding: '4px',
+            border: 'none',
+            cursor: 'pointer'
+        },
         actionRow: {
             display: 'flex',
             justifyContent: 'space-between',
+            borderTop: '1px solid #E4E6EB',
+            paddingTop: '12px',
         },
         actionBtn: {
             display: 'flex',
@@ -163,12 +205,13 @@ const FeedPage = () => {
         postCard: {
             backgroundColor: '#fff',
             marginBottom: '12px',
-            padding: '12px 16px',
+            padding: '12px 0',
             boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
         },
         postHeader: {
             display: 'flex',
             alignItems: 'center',
+            padding: '0 16px',
             marginBottom: '12px',
         },
         authorInfo: {
@@ -186,32 +229,29 @@ const FeedPage = () => {
         postText: {
             fontSize: '17px',
             lineHeight: '1.4',
+            padding: '0 16px',
             marginBottom: '12px',
             color: '#050505',
         },
-        postImagePlaceholder: {
+        postImage: {
             width: '100%',
-            height: '240px',
-            backgroundColor: '#F0F2F5',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            maxHeight: '500px',
+            objectFit: 'cover',
             marginBottom: '12px',
-            color: '#B0B3B8'
+            backgroundColor: '#f0f2f5'
         },
         postStats: {
             display: 'flex',
             justifyContent: 'space-between',
-            padding: '10px 0',
-            borderTop: '1px solid #E4E6EB',
+            padding: '10px 16px',
             color: '#65676B',
             fontSize: '14px',
         },
         postActions: {
             display: 'flex',
             borderTop: '1px solid #E4E6EB',
-            paddingtop: '4px',
+            margin: '0 16px',
+            paddingTop: '4px',
         },
         postActionBtn: {
             flex: 1,
@@ -251,13 +291,38 @@ const FeedPage = () => {
                         onKeyPress={(e) => e.key === 'Enter' && createPost()}
                     />
                 </div>
+
+                {selectedImage && (
+                    <div style={styles.previewContainer}>
+                        <img src={selectedImage} alt="Preview" style={styles.previewImage} />
+                        <button style={styles.removeImage} onClick={() => setSelectedImage(null)}>
+                            <X size={18} />
+                        </button>
+                    </div>
+                )}
+
                 <div style={styles.actionRow}>
-                    <button style={styles.actionBtn}>
+                    <input 
+                        type="file" 
+                        accept="image/*" 
+                        style={{ display: 'none' }} 
+                        ref={fileInputRef}
+                        onChange={handleImageChange}
+                    />
+                    <button style={styles.actionBtn} onClick={() => fileInputRef.current.click()}>
                         <ImageIcon color="#45BD62" size={20} /> Foto
                     </button>
                     <button 
-                        style={{ ...styles.actionBtn, color: 'white', backgroundColor: 'var(--color-primary)', padding: '6px 16px', borderRadius: '20px' }}
+                        style={{ 
+                            ...styles.actionBtn, 
+                            color: 'white', 
+                            backgroundColor: (newPostText.trim() || selectedImage) ? 'var(--color-primary)' : '#ccc', 
+                            padding: '6px 16px', 
+                            borderRadius: '20px',
+                            cursor: (newPostText.trim() || selectedImage) ? 'pointer' : 'not-allowed'
+                        }}
                         onClick={createPost}
+                        disabled={!newPostText.trim() && !selectedImage}
                     >
                         <Send size={16} /> Pubblica
                     </button>
@@ -268,7 +333,7 @@ const FeedPage = () => {
             {posts.map((post, index) => (
                 <div key={post.id || index} style={styles.postCard}>
                     <div style={styles.postHeader}>
-                        <div style={styles.avatarSmall}>{post.author[0]}</div>
+                        <div style={styles.avatarSmall}>{post.author?.[0] || 'U'}</div>
                         <div style={styles.authorInfo}>
                             <div style={styles.authorName}>{post.author}</div>
                             <div style={styles.postTime}>
@@ -282,19 +347,17 @@ const FeedPage = () => {
                         </div>
                     </div>
                     
-                    <div style={styles.postText}>{post.text}</div>
+                    {post.text && <div style={styles.postText}>{post.text}</div>}
                     
-                    {post.hasPhoto && (
-                        <div style={styles.postImagePlaceholder}>
-                             <ImageIcon size={48} />
-                        </div>
+                    {post.image && (
+                        <img src={post.image} alt="Post" style={styles.postImage} />
                     )}
 
                     <div style={styles.postStats}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <ThumbsUp size={16} fill="#1877F2" color="#1877F2" /> {post.likes}
+                            <ThumbsUp size={16} fill="#1877F2" color="#1877F2" /> {post.likes || 0}
                         </div>
-                        <div>3 commenti</div>
+                        <div>{Math.floor(Math.random() * 5)} commenti</div>
                     </div>
 
                     <div style={styles.postActions}>
