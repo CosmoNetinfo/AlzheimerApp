@@ -19,7 +19,7 @@ const LoginPage = () => {
         }
     };
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         if (name.trim() && surname.trim()) {
             const userData = {
@@ -27,7 +27,23 @@ const LoginPage = () => {
                 surname: surname.trim(),
                 photo: photo
             };
+
+            // Salva localmente
             localStorage.setItem('alzheimer_user', JSON.stringify(userData));
+
+            // Salva su Supabase (Sincronizzazione Profili)
+            try {
+                const userId = name.trim() + surname.trim();
+                await supabase.from('profiles').upsert([{ 
+                    id: userId, 
+                    name: name.trim(), 
+                    surname: surname.trim(), 
+                    photo_url: photo 
+                }]);
+            } catch (err) {
+                console.error("Errore sync profilo DB");
+            }
+
             navigate('/');
             window.location.reload();
         }
