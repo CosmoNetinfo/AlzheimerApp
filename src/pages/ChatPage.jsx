@@ -22,8 +22,8 @@ const ChatPage = () => {
                 { event: 'INSERT', schema: 'public', table: 'messages' },
                 (payload) => {
                     const msg = payload.new;
+                    console.log("Nuovo messaggio ricevuto via Realtime:", msg);
                     setMessages(prev => {
-                        // Evita duplicati se l'insert arriva sia da risposta API che da realtime
                         if (prev.find(m => m.id === msg.id)) return prev;
                         return [...prev, {
                             id: msg.id,
@@ -35,7 +35,9 @@ const ChatPage = () => {
                     });
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log("Stato canale Realtime:", status);
+            });
 
         return () => {
             supabase.removeChannel(channel);
@@ -49,7 +51,9 @@ const ChatPage = () => {
                 .select('*')
                 .order('created_at', { ascending: true });
 
-            if (!error && data) {
+            if (error) {
+                console.error("Errore fetch messaggi:", error);
+            } else if (data) {
                 setMessages(data.map(msg => ({
                     id: msg.id,
                     text: msg.text,
@@ -59,7 +63,7 @@ const ChatPage = () => {
                 })));
             }
         } catch (e) {
-            console.error("Errore fetch messaggi");
+            console.error("Errore catastrofico fetch messaggi:", e);
         }
         setLoading(false);
     };
@@ -67,6 +71,7 @@ const ChatPage = () => {
     const handleSend = async () => {
         if (!inputText.trim()) return;
 
+        console.log("Tentativo invio messaggio...");
         const { error } = await supabase
             .from('messages')
             .insert([{
@@ -75,7 +80,11 @@ const ChatPage = () => {
                 sender_id: currentUserId
             }]);
 
-        if (!error) {
+        if (error) {
+            console.error("Errore invio messaggio:", error);
+            alert("Impossibile inviare il messaggio: " + error.message);
+        } else {
+            console.log("Messaggio inviato con successo");
             setInputText("");
         }
     };
