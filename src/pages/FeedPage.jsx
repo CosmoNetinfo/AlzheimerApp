@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Heart, MessageSquare, Share2, Image as ImageIcon, ThumbsUp, Send, X } from 'lucide-react';
+import { Heart, MessageSquare, Share2, Image as ImageIcon, ThumbsUp, Send, X, MoreHorizontal, Edit2, Check, Trash2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 const FeedPage = () => {
@@ -8,6 +8,8 @@ const FeedPage = () => {
     const [newPostText, setNewPostText] = useState('');
     const [selectedImage, setSelectedImage] = useState(null);
     const [dbWorking, setDbWorking] = useState(true);
+    const [editingPostId, setEditingPostId] = useState(null);
+    const [editingText, setEditingText] = useState('');
     const fileInputRef = useRef(null);
 
     const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{"name":"Utente"}');
@@ -40,9 +42,15 @@ const FeedPage = () => {
             channel = supabase
                 .channel('posts')
                 .on('postgres_changes',
-                    { event: 'INSERT', schema: 'public', table: 'posts' },
+                    { event: '*', schema: 'public', table: 'posts' },
                     (payload) => {
-                        setPosts(prev => [payload.new, ...prev]);
+                        if (payload.eventType === 'INSERT') {
+                            setPosts(prev => [payload.new, ...prev]);
+                        } else if (payload.eventType === 'UPDATE') {
+                            setPosts(prev => prev.map(p => p.id === payload.new.id ? payload.new : p));
+                        } else if (payload.eventType === 'DELETE') {
+                            setPosts(prev => prev.filter(p => p.id !== payload.old.id));
+                        }
                     }
                 )
                 .subscribe();
@@ -95,10 +103,9 @@ const FeedPage = () => {
             text: newPostText,
             likes: 0,
             created_at: new Date().toISOString(),
-            image: selectedImage // Salviamo l'immagine come base64 nel DB per semplicità (attenzione ai limiti di dimensione)
+            image: selectedImage
         };
 
-        // Ottimistico
         setPosts(prev => [newPostObj, ...prev]);
         setNewPostText('');
         setSelectedImage(null);
@@ -107,14 +114,54 @@ const FeedPage = () => {
             const { error } = await supabase
                 .from('posts')
                 .insert([newPostObj]);
-            
-            if (error) {
-                console.error("Error saving to DB, kept locally:", error);
-                // Se l'errore è dovuto alla dimensione dell'immagine (base64 troppo lunga), 
-                // in un'app reale useremmo Supabase Storage.
-            }
+            if (error) console.error("Error saving to DB");
         } catch (e) {
-            console.error("DB Error:", e);
+            console.error("DB Error");
+        }
+    };
+
+    const startEditing = (post) => {
+        setEditingPostId(post.id);
+        setEditingText(post.text);
+    };
+
+    const cancelEditing = () => {
+        setEditingPostId(null);
+        setEditingText('');
+    };
+
+    const saveEdit = async (postId) => {
+        if (!editingText.trim()) return;
+
+        // Update locale
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, text: editingText } : p));
+        setEditingPostId(null);
+
+        try {
+            const { error } = await supabase
+                .from('posts')
+                .update({ text: editingText })
+                .eq('id', postId);
+            
+            if (error) console.error("Error updating DB");
+        } catch (e) {
+             console.error("DB Error");
+        }
+    };
+
+    const deletePost = async (postId) => {
+        if (!window.confirm("Vuoi davvero eliminare questo post?")) return;
+
+        setPosts(prev => prev.filter(p => p.id !== postId));
+
+        try {
+            const { error } = await supabase
+                .from('posts')
+                .delete()
+                .eq('id', postId);
+            if (error) console.error("Error deleting from DB");
+        } catch (e) {
+            console.error("DB Error");
         }
     };
 
@@ -213,9 +260,12 @@ const FeedPage = () => {
             alignItems: 'center',
             padding: '0 16px',
             marginBottom: '12px',
+            justifyContent: 'space-between'
         },
         authorInfo: {
-            marginLeft: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
         },
         authorName: {
             fontWeight: '700',
@@ -232,6 +282,25 @@ const FeedPage = () => {
             padding: '0 16px',
             marginBottom: '12px',
             color: '#050505',
+        },
+        editArea: {
+            padding: '0 16px',
+            marginBottom: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+        },
+        editInput: {
+            width: '100%',
+            padding: '10px',
+            borderRadius: '8px',
+            border: '1px solid var(--color-primary)',
+            fontSize: '16px',
+            outline: 'none'
+        },
+        editActions: {
+            display: 'flex',
+            gap: '8px'
         },
         postImage: {
             width: '100%',
@@ -266,6 +335,13 @@ const FeedPage = () => {
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer'
+        },
+        iconBtn: {
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: '#65676B',
+            padding: '4px'
         }
     };
 
@@ -333,21 +409,58 @@ const FeedPage = () => {
             {posts.map((post, index) => (
                 <div key={post.id || index} style={styles.postCard}>
                     <div style={styles.postHeader}>
-                        <div style={styles.avatarSmall}>{post.author?.[0] || 'U'}</div>
                         <div style={styles.authorInfo}>
-                            <div style={styles.authorName}>{post.author}</div>
-                            <div style={styles.postTime}>
-                                {new Date(post.created_at).toLocaleDateString('it-IT', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                })}
+                            <div style={styles.avatarSmall}>{post.author?.[0] || 'U'}</div>
+                            <div>
+                                <div style={styles.authorName}>{post.author}</div>
+                                <div style={styles.postTime}>
+                                    {new Date(post.created_at).toLocaleDateString('it-IT', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    })}
+                                </div>
                             </div>
+                        </div>
+                        
+                        {/* Tasto Modifica solo per i post (simulando che siano i suoi) */}
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            <button style={styles.iconBtn} onClick={() => startEditing(post)} title="Modifica">
+                                <Edit2 size={18} />
+                            </button>
+                            <button style={{ ...styles.iconBtn, color: '#FF3B30' }} onClick={() => deletePost(post.id)} title="Elimina">
+                                <Trash2 size={18} />
+                            </button>
                         </div>
                     </div>
                     
-                    {post.text && <div style={styles.postText}>{post.text}</div>}
+                    {editingPostId === post.id ? (
+                        <div style={styles.editArea}>
+                            <textarea
+                                style={styles.editInput}
+                                value={editingText}
+                                onChange={(e) => setEditingText(e.target.value)}
+                                rows={3}
+                            />
+                            <div style={styles.editActions}>
+                                <button 
+                                    style={{ ...styles.actionBtn, backgroundColor: 'var(--color-primary)', color: 'white', padding: '4px 12px' }}
+                                    onClick={() => saveEdit(post.id)}
+                                >
+                                    <Check size={16} /> Salva
+                                </button>
+                                <button 
+                                    style={{ ...styles.actionBtn, backgroundColor: '#eee', padding: '4px 12px' }}
+                                    onClick={cancelEditing}
+                                >
+                                    Annulla
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        post.text && <div style={styles.postText}>{post.text}</div>
+                    )}
                     
                     {post.image && (
                         <img src={post.image} alt="Post" style={styles.postImage} />
