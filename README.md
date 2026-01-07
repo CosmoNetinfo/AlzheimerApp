@@ -3,46 +3,39 @@
 Un'applicazione mobile premium progettata per supportare i pazienti affetti da Alzheimer e i loro caregiver, offrendo strumenti intuitivi per la gestione quotidiana, la memoria e la socialità.
 
 ## 🎨 Design & Branding
-
-L'applicazione segue l'identità visiva ufficiale di **Airalzh Onlus**.
-
-- **Palette Colori**: Prugna Scuro (`#4A304F`), Oro Airalzh (`#FDB913`) e Lilla Chiaro (`#F7F3FA`).
-- **Interfaccia**: Design pulito stile iOS con focus sulla leggibilità e facilità d'uso.
+L'applicazione segue l'identità visiva ufficiale di **Airalzh Onlus** ed è stata rinominata **Memora** per riflettere la sua missione.
+- **Palette Colori**: Viola Vibrante (`#9C69A7`), Prugna Scuro (`#4A304F`) e Lilla Chiarissimo (`#F7F3FA`).
+- **Icona**: Logo moderno con cervello stilizzato in palette ufficiale.
+- **Interfaccia**: Design mobile-first stile iOS, ottimizzato per l'accessibilità e la facilità d'uso.
 
 ## 🚀 Funzionalità Principali
 
 ### ✅ Gestione Attività (Todolist)
-
 Una lista quotidiana chiara per gestire medicine, idratazione e appuntamenti. Include funzioni di:
-
 - Inserimento rapido di nuovi task.
 - Spunta di completamento con feedback visivo.
 - Cancellazione rapida.
 
-### 📸 Social Feed (AlzheimerBook)
-
+### 📸 MemoraBook (Social Feed)
 Uno spazio sicuro per condividere momenti e pensieri con la comunità.
-
 - **Post Interattivi**: Condivisione di messaggi di testo e immagini.
-- **Caricamento Foto**: Supporto per l'upload di immagini con anteprima in tempo reale.
-- **Interazioni**: Mi piace (Like) e commenti in stile Facebook.
+- **Caricamento Foto**: Supporto per l'upload di immagini con ridimensionamento automatico intelligente per prestazioni ottimali.
+- **Gestione Contenuti**: Possibilità di modificare ed eliminare i propri post.
+- **Lightbox**: Visualizzazione delle immagini a tutto schermo per una migliore visibilità.
 
 ### 🆘 Sicurezza & Emergenza (SOS)
-
-- **Contatti SOS**: Numero di emergenza configurabile dall'utente per chiamate rapide.
+- **Contatti SOS**: Numero di emergenza configurabile per chiamate rapide.
 - **Supporto Tecnico**: Collegamento diretto al servizio "Pronto Alzheimer".
 
-### ⚙️ Personalizzazione
-
-- **Testo Grande**: Modalità accessibilità per una lettura più facile.
-- **Notifiche**: Gestione degli avvisi per le attività quotidiane.
+### ⚙️ Personalizzazione & PWA
+- **Caratteri Grandi**: Modalità accessibilità per una lettura facilitata.
+- **Installabile**: Configurazione PWA completa per aggiungere l'app alla Home dello smartphone con icona dedicata.
 
 ## 🛠️ Tecnologie Utilizzate
-
 - **Frontend**: React + Vite
 - **Icone**: Lucide-React
-- **Database & Tempo Reale**: Supabase
-- **Hosting**: Vercel / GitHub Pages
+- **Database & Real-time**: Supabase
+- **PWA**: Web App Manifest & Apple Touch Support
 
 ## 📦 Installazione Locale
 
@@ -61,5 +54,4 @@ npm run dev
 ```
 
 ---
-
-_Sviluppato con dedizione per migliorare la qualità della vita quotidiana._
+*Sviluppato con dedizione per migliorare la qualità della vita quotidiana attraverso la tecnologia.*
