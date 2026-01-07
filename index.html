@@ -8,6 +8,19 @@
     <link rel="manifest" href="/manifest.json" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(function(OneSignal) {
+        OneSignal.init({
+          appId: "IL-TUO-APP-ID-QUI",
+          safari_web_id: "IL-TUO-SAFARI-ID-OPZIONALE",
+          notifyButton: {
+            enable: false,
+          },
+        });
+      });
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Memora</title>
   </head>
