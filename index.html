@@ -11,10 +11,9 @@
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(function(OneSignal) {
-        OneSignal.init({
-          appId: "IL-TUO-APP-ID-QUI",
-          safari_web_id: "IL-TUO-SAFARI-ID-OPZIONALE",
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "99f7b2f1-0f40-4bae-a90b-6ca8777042f9",
           notifyButton: {
             enable: false,
           },
