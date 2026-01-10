@@ -7,9 +7,20 @@
         "dev": "vite",
         "build": "vite build",
         "lint": "eslint .",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "cap:sync": "npx cap sync",
+        "android": "npx cap open android",
+        "ios": "npx cap open ios"
     },
     "dependencies": {
+        "@capacitor/android": "^8.0.0",
+        "@capacitor/app": "^8.0.0",
+        "@capacitor/cli": "^8.0.0",
+        "@capacitor/core": "^8.0.0",
+        "@capacitor/haptics": "^8.0.0",
+        "@capacitor/ios": "^8.0.0",
+        "@capacitor/keyboard": "^8.0.0",
+        "@capacitor/status-bar": "^8.0.0",
         "@supabase/supabase-js": "^2.89.0",
         "lucide-react": "^0.300.0",
         "react": "^18.2.0",
