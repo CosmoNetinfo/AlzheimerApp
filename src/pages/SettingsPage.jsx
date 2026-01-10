@@ -22,25 +22,46 @@ const SettingsPage = () => {
     return saved ? JSON.parse(saved) : { name: "Utente", surname: "", photo: null };
   });
 
-  const [notifications, setNotifications] = useState(() => Notification.permission === "granted");
+  const [notifications, setNotifications] = useState(false);
   const [largeText, setLargeText] = useState(() => localStorage.getItem("setting_largeText") === "true");
   const [sosNumber, setSosNumber] = useState(() => localStorage.getItem("setting_sosNumber") || "");
   const [isEditingSos, setIsEditingSos] = useState(false);
   const [tempSos, setTempSos] = useState(sosNumber);
 
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (window.OneSignal) {
+        setNotifications(window.OneSignal.Notifications.permission);
+      } else if ("Notification" in window) {
+        setNotifications(Notification.permission === "granted");
+      }
+    };
+    
+    // Controlla subito e riprova dopo 1 secondo se OneSignal sta caricando
+    checkStatus();
+    const timer = setTimeout(checkStatus, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const requestNotificationPermission = async () => {
-    // 1. Prova via OneSignal (se presente)
-    if (window.OneSignal) {
+    // Info per IOs
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+    if (isIOS && !isStandalone) {
+      alert("Per attivare le notifiche su iPhone, devi prima aggiungere l'app alla Home: premi il tasto 'Condividi' e seleziona 'Aggiungi alla schermata Home'.");
+      return;
+    }
+
+    // 1. Prova via OneSignal
+    if (window.OneSignal && window.OneSignal.Notifications) {
       try {
-        const isPushSupported = window.OneSignal.Notifications.isPushSupported();
-        if (isPushSupported) {
-          await window.OneSignal.Notifications.requestPermission();
-          const permission = window.OneSignal.Notifications.permission;
-          setNotifications(permission === true || permission === "granted");
-          if (permission) {
-             // Opzionale: associa l'utente OneSignal al nome locale
-             window.OneSignal.login(user.name + " " + (user.surname || ""));
-          }
+        console.log("Richiesta via OneSignal...");
+        await window.OneSignal.Notifications.requestPermission();
+        const hasPerm = window.OneSignal.Notifications.permission;
+        setNotifications(hasPerm);
+        if (hasPerm) {
+          window.OneSignal.login(user.name + "_" + (user.surname || ""));
           return;
         }
       } catch (e) {
@@ -50,22 +71,20 @@ const SettingsPage = () => {
 
     // 2. Fallback Browser Nativo
     if (!("Notification" in window)) {
-      alert("Il tuo browser non supporta le notifiche.");
+      alert("Questo browser non supporta le notifiche.");
       return;
     }
 
-    const permission = await Notification.requestPermission();
-    if (permission === "granted") {
-      setNotifications(true);
-      new Notification("Memora: Notifiche Attive!", {
-        body: "Riceverai avvisi e messaggi in tempo reale su questo dispositivo.",
-        icon: "/logo.png"
-      });
-    } else {
-      setNotifications(false);
-      if (permission === "denied") {
-        alert("Hai negato i permessi. Per attivarle, vai nelle impostazioni del browser.");
+    try {
+      const permission = await Notification.requestPermission();
+      setNotifications(permission === "granted");
+      if (permission === "granted") {
+        new Notification("Memora", { body: "Notifiche attivate correttamente!" });
+      } else if (permission === "denied") {
+        alert("Notifiche bloccate. Abilitale nelle impostazioni del sito nel tuo browser.");
       }
+    } catch (err) {
+      console.error("Errore richiesta permessi:", err);
     }
   };
 
