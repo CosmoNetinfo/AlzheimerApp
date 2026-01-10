@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ListItem from '../components/ListItem';
+import { Bell, ShieldAlert } from 'lucide-react';
 
 const initialTasks = [
     { id: 1, text: 'Prendere le medicine', completed: false },
@@ -26,6 +27,35 @@ const ListPage = () => {
         setTasks(tasks.map(task =>
             task.id === id ? { ...task, completed: !task.completed } : task
         ));
+    };
+
+    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+    useEffect(() => {
+        const check = () => {
+            let hasPerm = false;
+            if (window.OneSignal && window.OneSignal.Notifications) {
+                hasPerm = window.OneSignal.Notifications.permission === true;
+            } else if (window.Notification) {
+                hasPerm = window.Notification.permission === 'granted';
+            }
+            setNotificationsEnabled(hasPerm);
+        };
+        check();
+        const timer = setTimeout(check, 2000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const requestPermission = async () => {
+        try {
+            if (window.OneSignal && window.OneSignal.Notifications) {
+                await window.OneSignal.Notifications.requestPermission();
+            } else if (window.Notification && window.Notification.requestPermission) {
+                await window.Notification.requestPermission();
+            }
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     const addTask = () => {
@@ -88,6 +118,16 @@ const ListPage = () => {
             <div style={{ padding: '16px', fontWeight: 'bold', color: 'var(--color-text-secondary)', fontSize: '20px' }}>
                 Oggi, {new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
             </div>
+
+            {!notificationsEnabled && (
+                <div onClick={requestPermission} style={{ margin: '0 16px 16px 16px', padding: '16px', backgroundColor: '#FFF4E5', border: '1px solid #FFE58F', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                    <div style={{ color: '#E67E22' }}><Bell size={24} /></div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 'bold', color: '#856404', fontSize: '15px' }}>Avvisi di Sicurezza Disattivati</div>
+                        <div style={{ fontSize: '13px', color: '#856404' }}>Tocca qui per attivare promemoria e messaggi urgenti.</div>
+                    </div>
+                </div>
+            )}
 
             {/* Area di inserimento */}
             <div style={styles.inputContainer}>
