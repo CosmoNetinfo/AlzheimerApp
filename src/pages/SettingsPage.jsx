@@ -23,6 +23,7 @@ const SettingsPage = () => {
   });
 
   const [notifications, setNotifications] = useState(false);
+  const [isDenied, setIsDenied] = useState(false);
   const [largeText, setLargeText] = useState(() => localStorage.getItem("setting_largeText") === "true");
   const [sosNumber, setSosNumber] = useState(() => localStorage.getItem("setting_sosNumber") || "");
   const [isEditingSos, setIsEditingSos] = useState(false);
@@ -30,11 +31,15 @@ const SettingsPage = () => {
 
   useEffect(() => {
     const checkStatus = async () => {
+      let status = "default";
       if (window.OneSignal) {
-        setNotifications(window.OneSignal.Notifications.permission);
+        status = window.OneSignal.Notifications.permission;
       } else if ("Notification" in window) {
-        setNotifications(Notification.permission === "granted");
+        status = Notification.permission;
       }
+      
+      setNotifications(status === "granted" || status === true);
+      setIsDenied(status === "denied");
     };
     
     // Controlla subito e riprova dopo 1 secondo se OneSignal sta caricando
@@ -159,6 +164,35 @@ const SettingsPage = () => {
           <div style={{...styles.switch(largeText), backgroundColor: largeText ? 'var(--color-success)' : '#ddd'}}><div style={{width: 27, height: 27, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: largeText ? 22 : 2, transition: '0.3s'}}/></div>
         </button>
       </div>
+
+      {isDenied && (
+        <div style={{ backgroundColor: '#FFFEEB', border: '1px solid #FFE58F', borderRadius: '16px', padding: '16px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#856404' }}>
+            <ShieldAlert size={20} />
+            <span style={{ fontWeight: '700' }}>Notifiche Bloccate</span>
+          </div>
+          <p style={{ fontSize: '14px', color: '#856404', margin: '0 0 12px 0', lineHeight: '1.4' }}>
+            Hai disattivato le notifiche per questa app. Ecco come riattivarle:
+          </p>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '12px', fontSize: '13px' }}>
+            {/iPad|iPhone|iPod/.test(navigator.userAgent) ? (
+              <ol style={{ paddingLeft: '20px', margin: 0 }}>
+                <li>Vai nelle <b>Impostazioni</b> del tuo iPhone.</li>
+                <li>Tocca <b>Notifiche</b>.</li>
+                <li>Trova <b>Memora</b> nell'elenco.</li>
+                <li>Attiva l'interruttore <b>Consenti notifiche</b>.</li>
+              </ol>
+            ) : (
+              <ol style={{ paddingLeft: '20px', margin: 0 }}>
+                <li>Tocca l'icona del <b>lucchetto</b> accanto all'indirizzo in alto.</li>
+                <li>Seleziona <b>Impostazioni sito</b> o <b>Autorizzazioni</b>.</li>
+                <li>Trova <b>Notifiche</b> e imposta su <b>Consenti</b>.</li>
+                <li>Ricarica questa pagina.</li>
+              </ol>
+            )}
+          </div>
+        </div>
+      )}
 
       <h3 style={styles.sectionLabel}>Sicurezza</h3>
       <div style={styles.menuCard}>
