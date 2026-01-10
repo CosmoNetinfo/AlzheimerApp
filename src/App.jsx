@@ -29,15 +29,23 @@ const NotificationPrompt = ({ onDone }) => {
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'var(--color-bg-primary)',
+            backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)',
             zIndex: 9999, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', padding: '30px',
             textAlign: 'center'
         }}>
             <div style={{
                 backgroundColor: 'white', padding: '40px 20px', borderRadius: '32px',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px'
+                boxShadow: '0 10px 30px rgba(0,0,0,0.2)', width: '100%', maxWidth: '400px',
+                position: 'relative'
             }}>
+                <button 
+                  onClick={onDone}
+                  style={{ position: 'absolute', top: 20, right: 20, background: '#eee', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}
+                >
+                  <X size={18} />
+                </button>
+
                 <div style={{ 
                     width: '80px', height: '80px', backgroundColor: '#E8F5E9', 
                     borderRadius: '50%', display: 'flex', alignItems: 'center', 
@@ -46,10 +54,10 @@ const NotificationPrompt = ({ onDone }) => {
                     <Bell size={40} />
                 </div>
                 <h2 style={{ color: 'var(--color-primary-dark)', marginBottom: '16px', fontSize: '26px' }}>
-                    Attiva la Sicurezza
+                    Sicurezza Attiva
                 </h2>
                 <p style={{ color: '#666', marginBottom: '32px', fontSize: '18px', lineHeight: '1.5' }}>
-                    Per proteggere {JSON.parse(localStorage.getItem('alzheimer_user') || '{"name":"l\'utente"}').name}, l'app deve poter inviare avvisi acustici e promemoria importanti.
+                    Le notifiche sono importanti per i promemoria e i messaggi di emergenza.
                 </p>
                 
                 <button 
@@ -75,10 +83,14 @@ const NotificationPrompt = ({ onDone }) => {
 function App() {
     const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem('alzheimer_user'));
     const [showSafePrompt, setShowSafePrompt] = React.useState(false);
+    const [promptDismissed, setPromptDismissed] = React.useState(false);
 
     // Controlla permessi ad ogni avvio
     React.useEffect(() => {
+        if (promptDismissed) return;
+
         const checkPerms = () => {
+            if (promptDismissed) return;
             const hasPerm = (window.OneSignal?.Notifications?.permission === true) || (Notification.permission === 'granted');
             if (!hasPerm && isAuthenticated) {
                 setShowSafePrompt(true);
@@ -114,7 +126,7 @@ function App() {
                     <Route path="impostazioni" element={<SettingsPage />} />
                 </Route>
             </Routes>
-            {showSafePrompt && <NotificationPrompt onDone={() => setShowSafePrompt(false)} />}
+            {showSafePrompt && <NotificationPrompt onDone={() => { setShowSafePrompt(false); setPromptDismissed(true); }} />}
         </BrowserRouter>
     );
 }
