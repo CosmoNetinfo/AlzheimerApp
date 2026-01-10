@@ -22,7 +22,7 @@ CREATE TABLE messages (
 );
 
 -- 3. Tabella Posts (MemoraBook / Feed Social)
-DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS posts CASCADE;
 CREATE TABLE posts (
   id BIGSERIAL PRIMARY KEY,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -33,15 +33,28 @@ CREATE TABLE posts (
   likes INT DEFAULT 0
 );
 
+-- 4. Tabella Commenti
+DROP TABLE IF EXISTS comments CASCADE;
+CREATE TABLE comments (
+  id BIGSERIAL PRIMARY KEY,
+  post_id BIGINT REFERENCES posts(id) ON DELETE CASCADE,
+  author_name TEXT NOT NULL,
+  author_photo TEXT,
+  text TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ABILITA RLS (Row Level Security)
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 
 -- ABILITA REALTIME (Indispensabile per chat e feed live)
 -- Nota: se ricevi errore qui, assicurati di aver selezionato il 'public' schema nelle impostazioni realtime di Supabase
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE posts;
+ALTER PUBLICATION supabase_realtime ADD TABLE comments;
 
 -- POLICY PER MESSAGGI
 CREATE POLICY "Public Messages" ON messages FOR ALL USING (true) WITH CHECK (true);
@@ -51,3 +64,6 @@ CREATE POLICY "Public Posts" ON posts FOR ALL USING (true) WITH CHECK (true);
 
 -- POLICY PER PROFILI
 CREATE POLICY "Public Profiles" ON profiles FOR ALL USING (true) WITH CHECK (true);
+
+-- POLICY PER COMMENTI
+CREATE POLICY "Public Comments" ON comments FOR ALL USING (true) WITH CHECK (true);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Send } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
@@ -6,6 +6,17 @@ const ChatPage = () => {
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState("");
     const [loading, setLoading] = useState(true);
+    const messagesEndRef = useRef(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        if (!loading) {
+            scrollToBottom();
+        }
+    }, [messages, loading]);
 
     // Recupera utente corrente
     const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{"name":"Utente"}');
@@ -98,12 +109,11 @@ const ChatPage = () => {
         },
         messageList: {
             flex: 1,
-            overflowY: 'auto',
             padding: '16px',
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
-            paddingBottom: '20px'
+            paddingBottom: '100px' // Spazio per l'input fisso
         },
         messageBubble: (sender) => ({
             maxWidth: '85%',
@@ -134,7 +144,12 @@ const ChatPage = () => {
             alignItems: 'center',
             gap: '12px',
             borderTop: '1px solid var(--color-border)',
-            paddingBottom: 'calc(12px + var(--safe-area-bottom))'
+            position: 'fixed',
+            bottom: 'calc(var(--tab-bar-height) + var(--safe-area-bottom))',
+            left: 0,
+            right: 0,
+            zIndex: 100,
+            boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
         },
         input: {
             flex: 1,
@@ -186,6 +201,7 @@ const ChatPage = () => {
                         </div>
                     ))
                 )}
+                <div ref={messagesEndRef} />
             </div>
             <div style={styles.inputArea}>
                 <input

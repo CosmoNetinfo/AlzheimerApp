@@ -96,6 +96,17 @@ const FeedPage = () => {
         }
     };
 
+    const handleLike = async (postId, currentLikes) => {
+        try {
+            await supabase
+                .from('posts')
+                .update({ likes: (currentLikes || 0) + 1 })
+                .eq('id', postId);
+        } catch (e) {
+            console.error("Errore nel mettere like");
+        }
+    };
+
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -127,9 +138,15 @@ const FeedPage = () => {
             created_at: new Date().toISOString(), 
             image: selectedImage 
         };
-        setPosts(prev => [newPostObj, ...prev]);
-        setNewPostText(''); setSelectedImage(null);
-        try { await supabase.from('posts').insert([newPostObj]); } catch (e) {}
+        
+        setNewPostText(''); 
+        setSelectedImage(null);
+        
+        try { 
+            await supabase.from('posts').insert([newPostObj]); 
+        } catch (e) {
+            console.error("Errore creazione post");
+        }
     };
 
     const deletePost = async (postId) => {
@@ -138,7 +155,8 @@ const FeedPage = () => {
     };
 
     const styles = {
-        container: { backgroundColor: 'var(--color-bg-primary)', minHeight: '100%', padding: '12px 0 100px 0' },
+        container: { backgroundColor: 'var(--color-bg-primary)', minHeight: '100%', padding: '0 0 100px 0' },
+        stickyHeader: { position: 'sticky', top: 0, zIndex: 100, backgroundColor: 'var(--color-bg-primary)', padding: '12px 0 1px 0' },
         card: { backgroundColor: '#fff', margin: '0 12px 12px 12px', borderRadius: '16px', padding: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' },
         avatar: { width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', overflow: 'hidden' },
         avatarSmall: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', overflow: 'hidden', fontSize: '12px' },
@@ -162,24 +180,26 @@ const FeedPage = () => {
                 </div>
             )}
 
-            {/* Creazione Post */}
-            <div style={styles.card}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={styles.avatar}>
-                        {user.photo ? <img src={user.photo} style={styles.avatarImg} alt="Profilo" /> : user.name[0]}
+            {/* Creazione Post - Sticky */}
+            <div style={styles.stickyHeader}>
+                <div style={styles.card}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        <div style={styles.avatar}>
+                            {user.photo ? <img src={user.photo} style={styles.avatarImg} alt="Profilo" /> : user.name[0]}
+                        </div>
+                        <input style={styles.input} placeholder={`A che pensi, ${user.name}?`} value={newPostText} onChange={(e) => setNewPostText(e.target.value)} />
                     </div>
-                    <input style={styles.input} placeholder={`A che pensi, ${user.name}?`} value={newPostText} onChange={(e) => setNewPostText(e.target.value)} />
-                </div>
-                {selectedImage && (
-                    <div style={{ position: 'relative', marginBottom: '12px' }}>
-                        <img src={selectedImage} style={{ width: '100%', borderRadius: '12px' }} alt="Preview" />
-                        <button onClick={() => setSelectedImage(null)} style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', borderRadius: '50%', padding: '4px' }}><X size={16}/></button>
+                    {selectedImage && (
+                        <div style={{ position: 'relative', marginBottom: '12px' }}>
+                            <img src={selectedImage} style={{ width: '100%', borderRadius: '12px' }} alt="Preview" />
+                            <button onClick={() => setSelectedImage(null)} style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', borderRadius: '50%', padding: '4px' }}><X size={16}/></button>
+                        </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <button style={styles.actionBtn} onClick={() => fileInputRef.current.click()}><ImageIcon size={20} color="var(--color-primary)"/> Foto</button>
+                        <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleImageChange} />
+                        <button style={styles.btnPrimary} onClick={createPost}>Pubblica</button>
                     </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button style={styles.actionBtn} onClick={() => fileInputRef.current.click()}><ImageIcon size={20} color="var(--color-primary)"/> Foto</button>
-                    <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleImageChange} />
-                    <button style={styles.btnPrimary} onClick={createPost}>Pubblica</button>
                 </div>
             </div>
 
@@ -203,7 +223,10 @@ const FeedPage = () => {
                     {post.image && <img src={post.image} style={styles.postImage} onClick={() => setEnlargedImage(post.image)} alt="Post" />}
 
                     <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-                        <button style={styles.actionBtn}><ThumbsUp size={18}/> Like</button>
+                        <button style={styles.actionBtn} onClick={() => handleLike(post.id, post.likes)}>
+                            <ThumbsUp size={18} fill={post.likes > 0 ? "var(--color-primary)" : "none"} color={post.likes > 0 ? "var(--color-primary)" : "currentColor"}/> 
+                            {post.likes > 0 ? post.likes : ''} Like
+                        </button>
                         <button style={styles.actionBtn} onClick={() => toggleComments(post.id)}><MessageSquare size={18}/> Commenta</button>
                     </div>
 
