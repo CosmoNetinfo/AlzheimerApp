@@ -26,10 +26,18 @@ const ProfilePage = () => {
         return saved ? JSON.parse(saved) : [];
     });
     const [enlargedImage, setEnlargedImage] = useState(null);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
     useEffect(() => {
         fetchUserPosts();
         calculateStats();
+
+        // Listener per resize della finestra
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     const fetchUserPosts = async () => {
@@ -169,7 +177,7 @@ const ProfilePage = () => {
             paddingBottom: '100px'
         },
         coverPhoto: {
-            height: '360px',
+            height: isMobile ? '200px' : '360px',
             background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
             position: 'relative',
             overflow: 'hidden'
@@ -192,11 +200,11 @@ const ProfilePage = () => {
             margin: '0 auto',
             padding: '0 16px',
             position: 'relative',
-            minHeight: '84px'
+            minHeight: isMobile ? '60px' : '84px'
         },
         profilePicture: {
-            width: '168px',
-            height: '168px',
+            width: isMobile ? '120px' : '168px',
+            height: isMobile ? '120px' : '168px',
             borderRadius: '50%',
             border: '4px solid white',
             backgroundColor: 'var(--color-primary)',
@@ -209,7 +217,7 @@ const ProfilePage = () => {
             alignItems: 'center',
             justifyContent: 'center',
             color: 'white',
-            fontSize: '64px',
+            fontSize: isMobile ? '48px' : '64px',
             fontWeight: 'bold',
             cursor: 'pointer',
             transition: 'transform 0.2s ease'
@@ -220,12 +228,13 @@ const ProfilePage = () => {
             objectFit: 'cover'
         },
         profileInfoSection: {
-            paddingLeft: '200px',
-            paddingTop: '20px',
-            paddingBottom: '16px'
+            paddingLeft: isMobile ? '0' : '200px',
+            paddingTop: isMobile ? '140px' : '20px',
+            paddingBottom: '16px',
+            textAlign: isMobile ? 'center' : 'left'
         },
         name: {
-            fontSize: '32px',
+            fontSize: isMobile ? '24px' : '32px',
             fontWeight: '700',
             color: '#050505',
             marginBottom: '4px'
@@ -241,7 +250,8 @@ const ProfilePage = () => {
             fontSize: '15px',
             color: '#65676B',
             marginBottom: '16px',
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
+            justifyContent: isMobile ? 'center' : 'flex-start'
         },
         metaItem: {
             display: 'flex',
@@ -265,20 +275,22 @@ const ProfilePage = () => {
         tabsContainer: {
             borderTop: '1px solid #CED0D4',
             display: 'flex',
-            gap: '8px',
-            paddingLeft: '200px',
-            paddingTop: '0'
+            gap: isMobile ? '4px' : '8px',
+            paddingLeft: isMobile ? '0' : '200px',
+            paddingTop: '0',
+            justifyContent: isMobile ? 'space-around' : 'flex-start'
         },
         tab: {
-            padding: '16px 16px',
-            fontSize: '15px',
+            padding: isMobile ? '12px 8px' : '16px 16px',
+            fontSize: isMobile ? '14px' : '15px',
             fontWeight: '600',
             color: '#65676B',
             background: 'none',
             border: 'none',
             borderBottom: '3px solid transparent',
             cursor: 'pointer',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            flex: isMobile ? '1' : 'initial'
         },
         tabActive: {
             color: 'var(--color-primary)',
@@ -289,7 +301,7 @@ const ProfilePage = () => {
             margin: '16px auto',
             padding: '0 16px',
             display: 'grid',
-            gridTemplateColumns: '360px 1fr',
+            gridTemplateColumns: isMobile ? '1fr' : '360px 1fr',
             gap: '16px'
         },
         sidebar: {
