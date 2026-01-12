@@ -26,18 +26,16 @@ const ChatPage = () => {
     const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{"name":"Utente"}');
     const currentUserId = user.name + (user.surname || '');
 
-    // Carica messaggi iniziali
+    // Carica messaggi e setup Realtime
     useEffect(() => {
         fetchMessages();
 
-        // Subscribe a nuovi messaggi in tempo reale
         const channel = supabase
             .channel('messages')
             .on('postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'messages' },
                 (payload) => {
                     const msg = payload.new;
-                    console.log("Nuovo messaggio ricevuto via Realtime:", msg);
                     setMessages(prev => {
                         if (prev.find(m => m.id === msg.id)) return prev;
                         return [...prev, {
@@ -50,9 +48,7 @@ const ChatPage = () => {
                     });
                 }
             )
-            .subscribe((status) => {
-                console.log("Stato canale Realtime:", status);
-            });
+            .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
@@ -66,9 +62,7 @@ const ChatPage = () => {
                 .select('*')
                 .order('created_at', { ascending: true });
 
-            if (error) {
-                console.error("Errore fetch messaggi:", error);
-            } else if (data) {
+            if (!error && data) {
                 setMessages(data.map(msg => ({
                     id: msg.id,
                     text: msg.text,
@@ -78,7 +72,7 @@ const ChatPage = () => {
                 })));
             }
         } catch (e) {
-            console.error("Errore catastrofico fetch messaggi:", e);
+            console.error(e);
         }
         setLoading(false);
     };
@@ -86,7 +80,6 @@ const ChatPage = () => {
     const handleSend = async () => {
         if (!inputText.trim()) return;
 
-        console.log("Tentativo invio messaggio...");
         const { error } = await supabase
             .from('messages')
             .insert([{
@@ -96,28 +89,29 @@ const ChatPage = () => {
             }]);
 
         if (error) {
-            console.error("Errore invio messaggio:", error);
-            alert("Impossibile inviare il messaggio: " + error.message);
+            alert("Errore invio: " + error.message);
         } else {
-            console.log("Messaggio inviato con successo");
             setInputText("");
         }
     };
 
+    // Stili ottimizzati per Mobile Keyboard
     const styles = {
-        container: {
+        wrapper: {
+            height: '100dvh', // Usa altezza viewport dinamica
             display: 'flex',
             flexDirection: 'column',
-            height: '100%',
             backgroundColor: 'var(--color-bg-primary)',
+            overflow: 'hidden' // Impedisce scroll del body
         },
         messageList: {
-            flex: 1,
+            flex: 1, // Occupa tutto lo spazio disponibile
+            overflowY: 'auto', // Scrolla internamente se necessario
             padding: '16px',
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
-            paddingBottom: '100px' // Spazio per l'input fisso
+            scrollBehavior: 'smooth'
         },
         messageBubble: (sender) => ({
             maxWidth: '85%',
@@ -126,47 +120,43 @@ const ChatPage = () => {
             backgroundColor: sender === 'me' ? 'var(--color-primary)' : 'white',
             color: sender === 'me' ? 'white' : 'var(--color-text-primary)',
             alignSelf: sender === 'me' ? 'flex-end' : 'flex-start',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
             borderBottomRightRadius: sender === 'me' ? '4px' : '18px',
             borderBottomLeftRadius: sender === 'me' ? '18px' : '4px',
+            wordBreak: 'break-word'
         }),
-        messageText: {
-            fontSize: '16px',
-            lineHeight: '1.4',
-            fontWeight: '500'
-        },
+        messageText: { fontSize: '15px', lineHeight: '1.4' },
         messageTime: (sender) => ({
             fontSize: '10px',
             color: sender === 'me' ? 'rgba(255,255,255,0.7)' : '#999',
             textAlign: 'right',
             marginTop: '4px',
         }),
+        // Input area NON più fixed, ma parte del flex layout
         inputArea: {
+            flexShrink: 0, // Non si riduce mai
             padding: '12px 16px',
             backgroundColor: 'white',
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            borderTop: '1px solid var(--color-border)',
-            position: 'fixed',
-            bottom: 'calc(var(--tab-bar-height) + var(--safe-area-bottom))',
-            left: 0,
-            right: 0,
-            zIndex: 100,
-            boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
+            borderTop: '1px solid #eee',
+            // Padding extra per distanziare dalla TabBar (se presente) o dal bordo inferiore
+            paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', 
+            marginBottom: '60px' // Spazio per la TabBar fissa (che ha z-index alto)
         },
         input: {
             flex: 1,
             padding: '12px 20px',
-            borderRadius: '25px',
-            border: '1px solid #eee',
-            backgroundColor: '#F3F4F6',
-            fontSize: '16px',
+            borderRadius: '24px',
+            border: '1px solid #E4E6EB',
+            backgroundColor: '#F0F2F5',
+            fontSize: '15px',
             outline: 'none',
         },
         sendButton: {
-            width: '45px',
-            height: '45px',
+            width: '40px',
+            height: '40px',
             borderRadius: '50%',
             backgroundColor: 'var(--color-primary)',
             color: 'white',
@@ -174,29 +164,24 @@ const ChatPage = () => {
             alignItems: 'center',
             justifyContent: 'center',
             border: 'none',
-            cursor: 'pointer',
-            boxShadow: '0 2px 5px rgba(156, 105, 167, 0.3)'
+            cursor: 'pointer'
         }
     };
 
     if (loading) {
-        return (
-            <div style={{ ...styles.container, justifyContent: 'center', alignItems: 'center' }}>
-                <div style={{color: 'var(--color-primary)', fontWeight: 'bold'}}>Apertura chat...</div>
-            </div>
-        );
+        return <div style={{display:'flex', justifyContent:'center', padding:'20px', color:'var(--color-primary)'}}>Caricamento chat...</div>;
     }
 
     return (
-        <div style={styles.container}>
+        <div style={styles.wrapper}>
             <div style={styles.messageList}>
                 {messages.length === 0 ? (
-                    <div style={{textAlign:'center', color:'#888', marginTop: '20px', fontSize: '14px'}}>Nessun messaggio. Inizia la conversazione! 👋</div>
+                    <div style={{textAlign:'center', color:'#888', marginTop: '20px', fontSize: '14px'}}>La chat è vuota.</div>
                 ) : (
                     messages.map(msg => (
                         <div key={msg.id} style={styles.messageBubble(msg.sender)}>
                             {msg.sender === 'other' && (
-                                <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--color-primary)', marginBottom: '4px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-primary)', marginBottom: '2px' }}>
                                     {msg.senderName}
                                 </div>
                             )}
@@ -211,13 +196,14 @@ const ChatPage = () => {
                 <input
                     style={styles.input}
                     type="text"
-                    placeholder="Scrivi un messaggio..."
+                    placeholder="Scrivi qui..."
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                    onFocus={scrollToBottom} // Scrolla quando si apre la tastiera
                 />
                 <button style={styles.sendButton} onClick={handleSend}>
-                    <Send size={20} fill="white" />
+                    <Send size={18} fill="white" />
                 </button>
             </div>
         </div>
