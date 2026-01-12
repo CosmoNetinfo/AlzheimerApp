@@ -7,7 +7,45 @@ const ChatPage = () => {
     const [inputText, setInputText] = useState("");
     const [loading, setLoading] = useState(true);
     const messagesEndRef = useRef(null);
-    const inputRef = useRef(null);
+    const [viewportHeight, setViewportHeight] = useState(window.visualViewport ? window.visualViewport.height : window.innerHeight);
+    const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+    // Gestione altezza dinamica e rilevamento tastiera
+    useEffect(() => {
+        const handleResize = () => {
+             // L'altezza visuale corrente
+            const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            setViewportHeight(currentHeight);
+            
+            // Se l'altezza disponibile è significativamente minore dell'altezza dello schermo, la tastiera è aperta
+            // (Usiamo una soglia di 150px che è meno di qualsiasi tastiera virtuale)
+            const screenHeight = window.screen.height;
+            // Nota: su mobile window.innerHeight cambia, window.screen.height no
+            // Se la differenza è grande (> 20%), probabile tastiera
+            if (currentHeight < window.outerHeight * 0.75) {
+                setIsKeyboardOpen(true);
+            } else {
+                setIsKeyboardOpen(false);
+            }
+            
+            // Scrolla in basso quando cambia l'altezza (es. tastiera si apre)
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+            }, 100);
+        };
+
+        // Ascolta sia resize standard che visualViewport (più preciso su mobile moderni)
+        window.visualViewport?.addEventListener('resize', handleResize);
+        window.addEventListener('resize', handleResize);
+        
+        // Initial check
+        handleResize();
+
+        return () => {
+            window.visualViewport?.removeEventListener('resize', handleResize);
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -16,21 +54,6 @@ const ChatPage = () => {
     useEffect(() => {
         if (!loading) scrollToBottom();
     }, [messages, loading]);
-
-    // Re-scroll on viewport resize (keyboard open/close)
-    useEffect(() => {
-        const handleResize = () => {
-             // Delay to allow keyboard animation
-            setTimeout(scrollToBottom, 300);
-        };
-        window.visualViewport?.addEventListener('resize', handleResize);
-        window.addEventListener('resize', handleResize);
-        return () => {
-            window.visualViewport?.removeEventListener('resize', handleResize);
-            window.removeEventListener('resize', handleResize);
-        };
-    }, []);
-
 
     const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{"name":"Utente"}');
     const currentUserId = user.name + (user.surname || '');
@@ -78,7 +101,7 @@ const ChatPage = () => {
     const handleSend = async () => {
         if (!inputText.trim()) return;
         const textToSend = inputText;
-        setInputText(""); // Optimistic clear
+        setInputText(""); 
 
         const { error } = await supabase.from('messages').insert([{
             text: textToSend,
@@ -87,72 +110,78 @@ const ChatPage = () => {
         }]);
 
         if (error) {
-            setInputText(textToSend); // Restore on error
+            setInputText(textToSend);
             alert("Errore invio");
+        } else {
+            // Force scroll after send
+            setTimeout(scrollToBottom, 50);
         }
     };
 
-    // Stili "Bulletproof" per Mobile
     const styles = {
-        pageContainer: {
+        // Container principale: forzato a occupare ESATTAMENTE l'altezza visibile
+        container: {
+            height: `${viewportHeight}px`, 
             display: 'flex',
             flexDirection: 'column',
-            height: '100vh', // Fallback
-            height: '100dvh', // Modern browsers
-            backgroundColor: '#f5f5f5',
-            position: 'relative'
+            backgroundColor: 'var(--color-bg-primary)',
+            position: 'fixed', // Usciamo dal flusso normale per controllare tutto noi
+            top: 0,
+            left: 0,
+            right: 0,
+            overflow: 'hidden',
+            zIndex: 900 // Sotto eventuali modal ma sopra il resto
         },
         messageList: {
             flex: 1,
             overflowY: 'auto',
             padding: '16px',
-            paddingBottom: '80px', // Extra space at bottom so messages aren't hidden behind input
             display: 'flex',
             flexDirection: 'column',
             gap: '12px'
         },
-        // INPUT AREA: Fixed at bottom, high z-index to stay above TabBar
-        inputWrapper: {
-            position: 'fixed', 
-            bottom: 0, 
-            left: 0, 
-            right: 0,
-            backgroundColor: 'white',
+        inputArea: {
+            flexShrink: 0, // Non si schiaccia mai
             padding: '10px 16px',
-            paddingBottom: 'max(10px, env(safe-area-inset-bottom))', // Safe area for iOS
-            borderTop: '1px solid #ddd',
+            backgroundColor: 'white',
+            borderTop: '1px solid #eee',
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            zIndex: 9999, // Ensure it's on top of EVERYTHING
-            marginBottom: '57px' // Altezza approssimativa TabBar per non coprirla quando tastiera è chiusa
+            // LOGICA CRUCIALE: 
+            // Se la tastiera è APERTA (isKeyboardOpen), margin bottom è 0 (attaccato alla tastiera)
+            // Se la tastiera è CHIUSA, margin bottom è ~60px per lasciare spazio alla TabBar
+            paddingBottom: isKeyboardOpen ? '10px' : 'calc(60px + env(safe-area-inset-bottom))',
+            transition: 'padding-bottom 0.2s ease-out' // Animazione fluida
         },
         input: {
             flex: 1,
             padding: '12px 16px',
             borderRadius: '24px',
             border: '1px solid #ccc',
-            fontSize: '16px', // 16px prevents zoom on iOS focus
+            fontSize: '16px',
             outline: 'none',
-            backgroundColor: '#f9f9f9'
+            backgroundColor: '#f9f9f9',
+            minHeight: '44px'
         },
-        sendBtn: {
-            background: 'var(--color-primary, #6200EE)',
-            border: 'none',
-            borderRadius: '50%',
+        sendButton: {
             width: '44px',
             height: '44px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            borderRadius: '50%',
+            backgroundColor: 'var(--color-primary)',
             color: 'white',
-            cursor: 'pointer'
+            border: 'none',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            cursor: 'pointer',
+            flexShrink: 0
         },
         bubble: (sender) => ({
             maxWidth: '80%',
             padding: '10px 14px',
             borderRadius: '16px',
-            backgroundColor: sender === 'me' ? 'var(--color-primary, #6200EE)' : 'white',
+            backgroundColor: sender === 'me' ? 'var(--color-primary)' : 'white',
             color: sender === 'me' ? 'white' : 'black',
             alignSelf: sender === 'me' ? 'flex-end' : 'flex-start',
             boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
@@ -161,50 +190,31 @@ const ChatPage = () => {
         })
     };
 
-    // Toggle margin-bottom based on focus to handle TabBar overlapping
-    const [isFocused, setIsFocused] = useState(false);
+    if (loading) return <div style={{display:'flex',justifyContent:'center',padding:'20px'}}>Caricamento...</div>;
 
     return (
-        <div style={styles.pageContainer}>
+        <div style={styles.container}>
             <div style={styles.messageList}>
-                {loading && <div style={{textAlign:'center', padding:'20px'}}>Caricamento...</div>}
-                {!loading && messages.length === 0 && <div style={{textAlign:'center', color:'#999', marginTop:'30%'}}>Nessun messaggio</div>}
-                
-                {messages.map(msg => (
+                 {messages.length === 0 && <div style={{textAlign:'center', color:'#999', marginTop:'30%'}}>Nessun messaggio</div>}
+                 {messages.map(msg => (
                     <div key={msg.id} style={styles.bubble(msg.sender)}>
-                        {msg.sender === 'other' && <div style={{fontSize:'12px', fontWeight:'bold', marginBottom:'4px', color:'var(--color-primary)'}}>{msg.senderName}</div>}
+                        {msg.sender === 'other' && <div style={{fontSize:'12px', fontWeight:'700', color:'var(--color-primary)', marginBottom:'2px'}}>{msg.senderName}</div>}
                         <div style={{wordBreak:'break-word'}}>{msg.text}</div>
-                        <div style={{fontSize:'10px', opacity:0.7, textAlign:'right', marginTop:'4px'}}>{msg.time}</div>
+                        <div style={{fontSize:'10px', opacity:0.7, textAlign:'right', marginTop:'2px'}}>{msg.time}</div>
                     </div>
-                ))}
-                <div ref={messagesEndRef} />
+                 ))}
+                 <div ref={messagesEndRef} />
             </div>
-
-            <div 
-                style={{
-                    ...styles.inputWrapper,
-                    marginBottom: isFocused ? '0px' : '60px' // When focused (keyboard open), stick to bottom (0px). When closed, sit above TabBar (60px).
-                }}
-            >
+            
+            <div style={styles.inputArea}>
                 <input 
-                    ref={inputRef}
                     style={styles.input}
-                    placeholder="Scrivi messaggio..."
+                    placeholder="Scrivi..."
                     value={inputText}
                     onChange={e => setInputText(e.target.value)}
-                    onFocus={() => {
-                        setIsFocused(true);
-                        setTimeout(scrollToBottom, 500);
-                    }}
-                    onBlur={() => {
-                        // Delay blurring logic slightly to allow clicks on Send button
-                        setTimeout(() => setIsFocused(false), 200);
-                    }}
                     onKeyPress={e => e.key === 'Enter' && handleSend()}
                 />
-                <button style={styles.sendBtn} onClick={handleSend} onMouseDown={e => e.preventDefault()}> {/* prevent blur on click */}
-                   <Send size={20} />
-                </button>
+                <button style={styles.sendButton} onClick={handleSend}><Send size={20}/></button>
             </div>
         </div>
     );
