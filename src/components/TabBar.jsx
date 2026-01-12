@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { ListTodo, MessageCircle, Users } from 'lucide-react';
+import { ListTodo, MessageCircle, Users, User } from 'lucide-react';
 import styles from './TabBar.module.css';
 
 const TabBar = () => {
@@ -28,6 +28,14 @@ const TabBar = () => {
             >
                 <Users size={32} />
                 <span className={styles.label}>Social</span>
+            </NavLink>
+
+            <NavLink
+                to="/profilo"
+                className={({ isActive }) => `${styles.tab} ${isActive ? styles.active : ''}`}
+            >
+                <User size={32} />
+                <span className={styles.label}>Profilo</span>
             </NavLink>
         </nav>
     );
