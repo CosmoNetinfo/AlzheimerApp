@@ -535,8 +535,6 @@ const ProfilePage = () => {
                     <button style={{...styles.tab, ...(activeTab === 'post' ? styles.tabActive : {})}} onClick={() => setActiveTab('post')}>Post</button>
                     <button style={{...styles.tab, ...(activeTab === 'info' ? styles.tabActive : {})}} onClick={() => setActiveTab('info')}>Informazioni</button>
                     <button style={{...styles.tab, ...(activeTab === 'foto' ? styles.tabActive : {})}} onClick={() => setActiveTab('foto')}>Foto</button>
-                    <button style={styles.tab}>Reels</button>
-                    <button style={styles.tab}>Eventi</button>
                 </div>
             </div>
 
@@ -676,6 +674,20 @@ const ProfilePage = () => {
                                 onChange={e => setEditForm({...editForm, location: e.target.value})}
                              />
                         </div>
+
+                        <div style={{marginBottom:'16px'}}>
+                            <label style={{display:'block', fontWeight:'600', marginBottom:'4px'}}>Ruolo</label>
+                            <select 
+                                style={{width:'100%', padding:'10px', borderRadius:'6px', border:'1px solid #ddd', backgroundColor:'white'}}
+                                value={editForm.role}
+                                onChange={(e) => setEditForm(prev => ({...prev, role: e.target.value}))}
+                            >
+                                <option value="patient">Paziente</option>
+                                <option value="caregiver">Familiare / Caregiver</option>
+                                <option value="healthcare">Operatore Sanitario</option>
+                            </select>
+                        </div>
+
                         <button 
                             style={{width:'100%', backgroundColor:'#1877F2', color:'white', border:'none', padding:'12px', borderRadius:'6px', fontWeight:'600', fontSize:'15px', cursor:'pointer'}}
                             onClick={saveProfile}
