@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Edit2, MapPin, Calendar, Heart, MessageSquare, ThumbsUp, X, Check, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Camera, Edit2, MapPin, Calendar, Heart, MessageSquare, ThumbsUp, X, Check, Image as ImageIcon, Trash2, User, Users, Stethoscope } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 const ProfilePage = () => {
@@ -13,7 +13,8 @@ const ProfilePage = () => {
         surname: user.surname || '',
         bio: user.bio || '',
         location: user.location || '',
-        photo: user.photo || ''
+        photo: user.photo || '',
+        role: user.role || 'patient'
     });
     const fileInputRef = useRef(null);
     const [stats, setStats] = useState({
@@ -124,12 +125,31 @@ const ProfilePage = () => {
         }
     };
 
-    const saveProfile = () => {
+    const saveProfile = async () => {
         const updatedUser = {
             ...user,
             ...editForm
         };
+        
+        // Salva in localStorage
         localStorage.setItem('alzheimer_user', JSON.stringify(updatedUser));
+        
+        // Salva su Supabase (se possibile)
+        try {
+            const userId = user.name + (user.surname || '');
+            await supabase.from('profiles').upsert([{ 
+                id: userId, 
+                name: editForm.name, 
+                surname: editForm.surname, 
+                bio: editForm.bio,
+                location: editForm.location,
+                photo_url: editForm.photo,
+                role: editForm.role
+            }]);
+        } catch (err) {
+            console.error("Errore salvataggio DB:", err);
+        }
+
         setUser(updatedUser);
         setShowEditModal(false);
         
@@ -167,6 +187,24 @@ const ProfilePage = () => {
             calculateStats();
         } catch (e) {
             console.error("Errore eliminazione post:", e);
+        }
+    };
+
+    const getRoleLabel = (r) => {
+        switch(r) {
+            case 'patient': return 'Paziente';
+            case 'caregiver': return 'Familiare / Caregiver';
+            case 'healthcare': return 'Operatore Sanitario';
+            default: return 'Utente';
+        }
+    };
+
+    const getRoleIcon = (r) => {
+        switch(r) {
+            case 'patient': return <User size={14} />;
+            case 'caregiver': return <Users size={14} />;
+            case 'healthcare': return <Stethoscope size={14} />;
+            default: return <User size={14} />;
         }
     };
 
@@ -238,6 +276,20 @@ const ProfilePage = () => {
             fontWeight: '700',
             color: '#050505',
             marginBottom: '4px'
+        },
+        roleBadge: {
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 12px',
+            borderRadius: '16px',
+            backgroundColor: 'var(--color-bg-primary)',
+            color: 'var(--color-primary)',
+            fontSize: '13px',
+            fontWeight: '600',
+            marginBottom: '12px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
         },
         bio: {
             fontSize: '15px',
@@ -517,7 +569,8 @@ const ProfilePage = () => {
             borderRadius: '12px',
             fontSize: '15px',
             outline: 'none',
-            transition: 'border-color 0.2s ease'
+            transition: 'border-color 0.2s ease',
+            backgroundColor: 'white'
         },
         textarea: {
             width: '100%',
@@ -630,6 +683,11 @@ const ProfilePage = () => {
                         <h1 style={styles.name}>
                             {user.name} {user.surname || ''}
                         </h1>
+
+                        <div style={styles.roleBadge}>
+                            {getRoleIcon(user.role || 'patient')}
+                            {getRoleLabel(user.role || 'patient')}
+                        </div>
                         
                         {user.bio && (
                             <p style={styles.bio}>{user.bio}</p>
@@ -650,7 +708,17 @@ const ProfilePage = () => {
 
                         <button 
                             style={styles.editButton}
-                            onClick={() => setShowEditModal(true)}
+                            onClick={() => {
+                                setEditForm({
+                                    name: user.name || '',
+                                    surname: user.surname || '',
+                                    bio: user.bio || '',
+                                    location: user.location || '',
+                                    photo: user.photo || '',
+                                    role: user.role || 'patient'
+                                });
+                                setShowEditModal(true);
+                            }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#D8DADF'}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#E4E6EB'}
                         >
@@ -837,6 +905,13 @@ const ProfilePage = () => {
                     {activeTab === 'info' && (
                         <div style={styles.card}>
                             <h3 style={styles.cardTitle}>Informazioni</h3>
+                            <div style={styles.infoItem}>
+                                <strong>Ruolo:</strong> 
+                                <span style={{marginLeft: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--color-primary)', fontWeight: '600'}}>
+                                    {getRoleIcon(user.role || 'patient')}
+                                    {getRoleLabel(user.role || 'patient')}
+                                </span>
+                            </div>
                             {user.bio && (
                                 <div style={styles.infoItem}>
                                     <strong>Bio:</strong> {user.bio}
@@ -946,6 +1021,19 @@ const ProfilePage = () => {
                                 onFocus={(e) => e.target.style.borderColor = 'var(--color-primary)'}
                                 onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                             />
+                        </div>
+
+                        <div style={styles.formGroup}>
+                            <label style={styles.label}>Ruolo</label>
+                            <select 
+                                style={styles.input}
+                                value={editForm.role}
+                                onChange={(e) => setEditForm(prev => ({...prev, role: e.target.value}))}
+                            >
+                                <option value="patient">Paziente</option>
+                                <option value="caregiver">Familiare / Caregiver</option>
+                                <option value="healthcare">Operatore Sanitario</option>
+                            </select>
                         </div>
 
                         <div style={styles.formGroup}>
