@@ -35,6 +35,7 @@ const LoginPage = () => {
 
                 if (profile) {
                     localStorage.setItem('alzheimer_user', JSON.stringify({
+                        id: profile.id, // <--- FONDAMENTALE: Salviamo l'UUID
                         name: profile.name,
                         surname: profile.surname,
                         photo: profile.photo_url,

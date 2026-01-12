@@ -56,7 +56,7 @@ const ChatPage = () => {
     }, [messages, loading]);
 
     const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{"name":"Utente"}');
-    const currentUserId = user.name + (user.surname || '');
+    const currentUserId = user.id || (user.name + (user.surname || ''));
 
     useEffect(() => {
         fetchMessages();

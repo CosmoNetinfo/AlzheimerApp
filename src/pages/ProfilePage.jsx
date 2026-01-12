@@ -152,6 +152,7 @@ const ProfilePage = () => {
 
         const newPostObj = {
             author: user.name + ' ' + (user.surname || ''),
+            author_id: user.id || null, // <--- Added author_id
             author_photo: user.photo,
             text: newPostText,
             image: newPostImage,
@@ -241,6 +242,7 @@ const ProfilePage = () => {
         const commentObj = {
             post_id: postId,
             author_name: user.name + ' ' + (user.surname || ''),
+            author_id: user.id || null, // <--- Added author_id
             author_photo: user.photo,
             text: newCommentText,
             likes: 0
