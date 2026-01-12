@@ -121,16 +121,16 @@ const ChatPage = () => {
     const styles = {
         // Container principale: forzato a occupare ESATTAMENTE l'altezza visibile
         container: {
-            height: `${viewportHeight}px`, 
+            height: isKeyboardOpen ? `${viewportHeight}px` : `calc(${viewportHeight}px - 60px)`, // Togli 60px se c'è l'header
             display: 'flex',
             flexDirection: 'column',
             backgroundColor: 'var(--color-bg-primary)',
-            position: 'fixed', // Usciamo dal flusso normale per controllare tutto noi
-            top: 0,
+            position: 'fixed', 
+            top: isKeyboardOpen ? 0 : '60px', // Se tastiera aperta, full screen. Se chiusa, sotto header
             left: 0,
             right: 0,
             overflow: 'hidden',
-            zIndex: 900 // Sotto eventuali modal ma sopra il resto
+            zIndex: 900
         },
         messageList: {
             flex: 1,
@@ -138,21 +138,22 @@ const ChatPage = () => {
             padding: '16px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px'
+            gap: '12px',
+            paddingBottom: '20px'
         },
         inputArea: {
-            flexShrink: 0, // Non si schiaccia mai
+            flexShrink: 0, 
             padding: '10px 16px',
             backgroundColor: 'white',
             borderTop: '1px solid #eee',
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            // LOGICA CRUCIALE: 
-            // Se la tastiera è APERTA (isKeyboardOpen), margin bottom è 0 (attaccato alla tastiera)
-            // Se la tastiera è CHIUSA, margin bottom è ~60px per lasciare spazio alla TabBar
-            paddingBottom: isKeyboardOpen ? '10px' : 'calc(60px + env(safe-area-inset-bottom))',
-            transition: 'padding-bottom 0.2s ease-out' // Animazione fluida
+            // LOGICA CRUCIALE AGGIORNATA: 
+            // - Tastiera APERTA: padding 0 (attaccato)
+            // - Tastiera CHIUSA: padding 80px (60px TabBar + 20px spazio) per non finire sotto i menu
+            paddingBottom: isKeyboardOpen ? '10px' : 'calc(85px + env(safe-area-inset-bottom))',
+            transition: 'padding-bottom 0.2s ease-out' 
         },
         input: {
             flex: 1,
