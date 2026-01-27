@@ -3,7 +3,7 @@
 **Progetto**: Memora - App per supporto Alzheimer  
 **Sviluppatori**: Daniele Spalletti & Michele Mosca (CosmoNet.info)  
 **Cliente**: Airalzh  
-**Ultimo Aggiornamento**: 27 Gennaio 2026
+**Ultimo Aggiornamento**: 27 Gennaio 2026, ore 02:40
 
 ---
 
@@ -11,7 +11,7 @@
 
 Creare una Progressive Web App (PWA) per supportare pazienti affetti da Alzheimer e i loro caregiver, fornendo strumenti per:
 - Gestione attività quotidiane
-- Monitoraggio dello stato emotivo
+- Monitoraggio dello stato emotivo con indicatori visivi
 - Comunicazione tra paziente e rete di supporto
 - Social network dedicato per condivisione esperienze
 
@@ -51,16 +51,25 @@ Creare una Progressive Web App (PWA) per supportare pazienti affetti da Alzheime
 - [x] Persistenza task in localStorage
 - [x] Link impostazioni in header (icona ingranaggio)
 
-### 5. **Mood Tracker (Tracciamento Umore)** ✓
+### 5. **Mood Tracker (Tracciamento Umore) - COMPLETO** ✅
 - [x] Tre stati emotivi: Felice, Neutro, Triste
 - [x] Icone colorate (Smile, Meh, Frown)
 - [x] **Logica basata su ruolo**:
   - Paziente: può selezionare il proprio umore (cliccabile)
   - Altri ruoli: vedono l'umore del paziente (read-only)
-- [x] Persistenza in Supabase (tabella `profiles`)
+- [x] **Persistenza in Supabase** (tabella `profiles`)
 - [x] Sincronizzazione real-time
-- [x] Visualizzazione su Homepage
-- [x] Visualizzazione su Profilo (badge per non-pazienti, selettore per pazienti)
+- [x] **Homepage**: Pulsanti interattivi per selezione mood
+- [x] **Profilo**:
+  - **Bordo colorato avatar** (🟢 Verde = Felice, 🟡 Giallo = Neutro, 🔴 Rosso = Triste)
+  - **Emoji accanto al nome** (😊😐😢)
+  - Selettore mood per pazienti (3 pulsanti)
+  - Visualizzazione mood per caregiver
+- [x] **Feed (MemoraBook)**:
+  - Bordo colorato su avatar di ogni post
+  - Emoji accanto al nome autore
+  - Fetch automatico mood da tabella profiles
+  - **Persistenza tra pagine** (non si perde cambiando schermata)
 
 ### 6. **Pillola di Benessere** ✓
 - [x] 10 citazioni motivazionali
@@ -75,6 +84,10 @@ Creare una Progressive Web App (PWA) per supportare pazienti affetti da Alzheime
 - [x] Bubble messages con avatar
 - [x] Auto-scroll ai nuovi messaggi
 - [x] Persistenza conversazioni in localStorage
+- [x] **Layout responsive** (fix per sidebar PC)
+- [x] **Design migliorato** con bordi arrotondati e ombre
+- [x] Focus state su input (bordo viola)
+- [x] Animazione press su pulsante send
 
 ### 8. **Social Feed (MemoraBook)** ✓
 - [x] Feed stile Facebook/Instagram
@@ -86,13 +99,17 @@ Creare una Progressive Web App (PWA) per supportare pazienti affetti da Alzheime
 - [x] Lightbox per visualizzazione immagini
 - [x] Timestamp relativi ("2 ore fa")
 - [x] Persistenza completa in Supabase
+- [x] **Indicatori mood su avatar** (bordo colorato + emoji)
+- [x] **Fetch mood da profiles** per tutti gli autori
+- [x] **author_id** salvato nei post per tracking mood
 
 ### 9. **Profilo Utente** ✓
-- [x] **Design minimale card-based** (nuovo!)
+- [x] **Design minimale card-based**
 - [x] Avatar con iniziale o foto
+- [x] **Avatar con bordo colorato dinamico** basato su mood
+- [x] **Emoji mood accanto al nome**
 - [x] Badge ruolo
-- [x] **Mood badge** per caregiver (mostra umore paziente)
-- [x] **Mood selector** per pazienti (3 pulsanti interattivi)
+- [x] **Mood selector** per pazienti (3 pulsanti interattivi cliccabili)
 - [x] Card informazioni (email, ruolo, data iscrizione)
 - [x] Card azioni rapide (Impostazioni, Post)
 - [x] Pulsante logout rosso
@@ -105,6 +122,7 @@ Creare una Progressive Web App (PWA) per supportare pazienti affetti da Alzheime
 - [x] Link rapido Pronto Alzheimer
 - [x] Istruzioni per attivazione notifiche (iOS/Android)
 - [x] Gestione permessi denied
+- [x] **Link accessibile da ogni pagina** (icona ingranaggio in header homepage)
 
 ### 11. **Notifiche Push** ✓
 - [x] Integrazione OneSignal
@@ -142,6 +160,7 @@ Creare una Progressive Web App (PWA) per supportare pazienti affetti da Alzheime
   - [ ] Test iOS (Safari, PWA installata)
   - [ ] Test Android (Chrome, PWA installata)
   - [ ] Test notifiche push su tutti i device
+  - [ ] Test mood tracking cross-device
 - [ ] **Gestione errori robusta**
   - [ ] Offline mode (service worker)
   - [ ] Retry automatico chiamate API
@@ -196,6 +215,21 @@ Creare una Progressive Web App (PWA) per supportare pazienti affetti da Alzheime
 
 ---
 
+## 🎨 INDICATORI MOOD - SISTEMA COLORI
+
+### Colori Mood
+- **🟢 Verde (#10B981)** = Felice (happy) 😊
+- **🟡 Giallo/Ambra (#F59E0B)** = Neutro (neutral) 😐
+- **🔴 Rosso (#EF4444)** = Triste (sad) 😢
+- **⚪ Grigio (#E5E7EB)** = Nessuno stato (default)
+
+### Applicazione Visiva
+1. **Bordo Avatar**: 3-4px solid con colore mood + ombra colorata
+2. **Emoji**: Mostrata accanto al nome (18-28px)
+3. **Transizioni**: Smooth 0.3s ease per cambio stato
+
+---
+
 ## 🗂️ STRUTTURA PROGETTO
 
 ```
@@ -212,60 +246,20 @@ AlzheimerApp/
 │   │   └── Layout.jsx         # Layout wrapper
 │   ├── pages/
 │   │   ├── LoginPage.jsx      # Login/Registrazione
-│   │   ├── ListPage.jsx       # Homepage - Attività
-│   │   ├── ChatPage.jsx       # Chat AI
-│   │   ├── FeedPage.jsx       # Social feed
-│   │   ├── ProfilePage.jsx    # Profilo utente (minimale)
+│   │   ├── ListPage.jsx       # Homepage - Attività + Mood
+│   │   ├── ChatPage.jsx       # Chat AI (fix responsive)
+│   │   ├── FeedPage.jsx       # Social feed + Mood indicators
+│   │   ├── ProfilePage.jsx    # Profilo + Mood selector/badge
 │   │   └── SettingsPage.jsx   # Impostazioni
 │   ├── supabaseClient.js      # Config Supabase
 │   ├── App.jsx                # Router principale
 │   ├── index.css              # Stili globali + design system
 │   └── main.jsx               # Entry point
-├── .env                       # Variabili ambiente (Supabase, OneSignal, Gemini)
+├── .env                       # Variabili ambiente
 ├── vite.config.js             # Config Vite
+├── PROGETTO_RECAP.md          # Questo file
 └── package.json               # Dipendenze
 ```
-
----
-
-## 🎨 DESIGN TOKENS
-
-### Colori
-```css
---color-primary: #7C3AED        /* Vibrant Purple */
---color-primary-dark: #4C1D95   /* Deep Purple */
---color-accent: #F59E0B         /* Amber/Gold */
---color-bg-primary: #F9F9FB     /* Light Gray */
---color-bg-secondary: #FFFFFF   /* Pure White */
---color-text-primary: #1F2937   /* Deep Gray */
---color-success: #10B981        /* Green */
---color-error: #EF4444          /* Red */
-```
-
-### Spacing
-- Tab bar height: 84px
-- Header height: 60px
-- Card border-radius: 24px
-- Button border-radius: 12-20px
-
----
-
-## 🔧 TECNOLOGIE UTILIZZATE
-
-### Frontend
-- **React 18** - UI library
-- **Vite** - Build tool
-- **React Router** - Routing
-- **Lucide React** - Icon library
-
-### Backend & Services
-- **Supabase** - Database PostgreSQL + Auth + Storage
-- **Google Gemini AI** - Chat assistant
-- **OneSignal** - Push notifications
-
-### Deployment
-- **Vercel** - Hosting + CI/CD
-- **GitHub** - Version control
 
 ---
 
@@ -281,7 +275,7 @@ AlzheimerApp/
 - bio (text)
 - location (text)
 - photo (text) -- base64 o URL
-- current_mood (text) -- 'happy', 'neutral', 'sad'
+- current_mood (text) -- 'happy', 'neutral', 'sad' ⭐ NUOVO
 - created_at (timestamp)
 ```
 
@@ -289,7 +283,7 @@ AlzheimerApp/
 ```sql
 - id (bigint, PK, auto)
 - author (text)
-- author_id (text)
+- author_id (text) ⭐ NUOVO (per fetch mood)
 - author_photo (text)
 - text (text)
 - image (text) -- base64
@@ -314,7 +308,7 @@ AlzheimerApp/
 ## 🚀 DEPLOYMENT
 
 ### Vercel
-- **URL Produzione**: https://alzheimer-app.vercel.app (o simile)
+- **URL Produzione**: https://alzheimer-app.vercel.app
 - **Auto-deploy**: Push su branch `main` → deploy automatico
 - **Environment Variables**: Configurate su Vercel dashboard
 
@@ -329,19 +323,21 @@ AlzheimerApp/
 
 ### Gestione Stato
 - **localStorage**: Tasks, user session, liked posts/comments
-- **Supabase**: Posts, comments, profiles, mood
-- **React State**: UI temporaneo, form inputs
+- **Supabase**: Posts, comments, profiles, **mood** (persistente)
+- **React State**: UI temporaneo, form inputs, userMoods mapping
 
 ### Performance
 - Immagini compresse a max 1024px (post) e 512px (avatar)
 - Lazy loading componenti (da implementare)
-- Memoization con useMemo per calcoli pesanti
+- Memoization con useMemo per calcoli pesanti (dailyQuote)
+- Fetch mood batch per tutti gli autori (evita N+1 queries)
 
 ### Accessibilità
 - Font size base: 18px (leggibilità)
 - Toggle caratteri grandi disponibile
 - Contrasti colori WCAG AA compliant
 - Icone sempre accompagnate da testo
+- Pulsanti mood con `pointer-events` e `userSelect` ottimizzati
 
 ---
 
@@ -361,6 +357,8 @@ AlzheimerApp/
 - **Geolocalizzazione**: Tracking posizione paziente (con consenso)
 - **Wearable Integration**: Smartwatch per monitoraggio parametri vitali
 - **Voice Assistant**: Comandi vocali per pazienti con difficoltà motorie
+- **Mood History**: Grafico andamento umore nel tempo
+- **Mood Alerts**: Notifica caregiver se paziente è triste per troppo tempo
 
 ---
 
@@ -373,4 +371,18 @@ AlzheimerApp/
 
 ---
 
-**Ultimo aggiornamento**: 27 Gennaio 2026, ore 02:17
+## 📅 CHANGELOG ULTIMA SESSIONE (27 Gen 2026)
+
+### Ore 02:00 - 02:40
+- ✅ Aggiunto sistema completo mood tracking con:
+  - Bordi colorati avatar (verde/giallo/rosso)
+  - Emoji accanto ai nomi (😊😐😢)
+  - Persistenza in Supabase
+  - Visualizzazione su Profilo, Homepage, Feed
+- ✅ Fix chat layout per compatibilità sidebar PC
+- ✅ Fix pulsanti mood cliccabili (pointerEvents, userSelect)
+- ✅ Aggiunto author_id ai post per tracking mood
+- ✅ Fetch batch mood da profiles per performance
+- ✅ Aggiornato PROGETTO_RECAP.md con tutte le features
+
+**Ultimo aggiornamento**: 27 Gennaio 2026, ore 02:40
