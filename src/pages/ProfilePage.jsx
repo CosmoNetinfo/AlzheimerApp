@@ -71,10 +71,28 @@ const ProfilePage = () => {
 
     const getMoodIcon = (mood) => {
         switch (mood) {
-            case 'happy': return <Smile size={20} color="#F59E0B" />;
-            case 'neutral': return <Meh size={20} color="#9CA3AF" />;
+            case 'happy': return <Smile size={20} color="#10B981" />;
+            case 'neutral': return <Meh size={20} color="#F59E0B" />;
             case 'sad': return <Frown size={20} color="#EF4444" />;
             default: return null;
+        }
+    };
+
+    const getMoodColor = (mood) => {
+        switch (mood) {
+            case 'happy': return '#10B981'; // Green
+            case 'neutral': return '#F59E0B'; // Yellow/Amber
+            case 'sad': return '#EF4444'; // Red
+            default: return '#E5E7EB'; // Gray default
+        }
+    };
+
+    const getMoodEmoji = (mood) => {
+        switch (mood) {
+            case 'happy': return '😊';
+            case 'neutral': return '😐';
+            case 'sad': return '😢';
+            default: return '';
         }
     };
 
@@ -120,8 +138,9 @@ const ProfilePage = () => {
             fontSize: '36px',
             fontWeight: 'bold',
             overflow: 'hidden',
-            border: '4px solid #fff',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+            border: `4px solid ${getMoodColor(currentMood)}`,
+            boxShadow: `0 4px 15px ${getMoodColor(currentMood)}40`,
+            transition: 'all 0.3s ease',
         },
         moodBadge: {
             position: 'absolute',
@@ -144,6 +163,10 @@ const ProfilePage = () => {
             alignItems: 'center',
             gap: '8px',
             justifyContent: 'center',
+        },
+        moodEmoji: {
+            fontSize: '28px',
+            lineHeight: 1,
         },
         roleBadge: {
             backgroundColor: 'rgba(124, 58, 237, 0.1)',
@@ -238,24 +261,20 @@ const ProfilePage = () => {
                     <div style={styles.avatar}>
                         {user.photo ? <img src={user.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Profile" /> : user.name?.[0]}
                     </div>
-                    {!isPatient && currentMood && (
-                        <div style={styles.moodBadge}>
-                            {getMoodIcon(currentMood)}
-                        </div>
-                    )}
                 </div>
                 <h1 style={styles.name}>
                     {user.name} {user.surname}
+                    {currentMood && <span style={styles.moodEmoji}>{getMoodEmoji(currentMood)}</span>}
                 </h1>
                 <div style={styles.roleBadge}>{getRoleLabel(user.role)}</div>
 
                 {isPatient && (
                     <div style={styles.moodIconContainer}>
                         <div style={styles.moodBtn('happy')} onClick={() => handleMoodSelect('happy')}>
-                            <Smile size={24} color={currentMood === 'happy' ? "#7C3AED" : "#F59E0B"} />
+                            <Smile size={24} color={currentMood === 'happy' ? "#7C3AED" : "#10B981"} />
                         </div>
                         <div style={styles.moodBtn('neutral')} onClick={() => handleMoodSelect('neutral')}>
-                            <Meh size={24} color={currentMood === 'neutral' ? "#7C3AED" : "#9CA3AF"} />
+                            <Meh size={24} color={currentMood === 'neutral' ? "#7C3AED" : "#F59E0B"} />
                         </div>
                         <div style={styles.moodBtn('sad')} onClick={() => handleMoodSelect('sad')}>
                             <Frown size={24} color={currentMood === 'sad' ? "#7C3AED" : "#EF4444"} />
