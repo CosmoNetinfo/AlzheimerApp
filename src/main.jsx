@@ -3,6 +3,11 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 
+// Applica Caratteri Grandi all'avvio (classe su html per scalare tutti i rem)
+if (localStorage.getItem('setting_largeText') === 'true') {
+  document.documentElement.classList.add('large-font-mode');
+}
+
 // Diagnostica per APK: mostra l'errore a schermo se il mount fallisce
 try {
     const rootElement = document.getElementById('root');

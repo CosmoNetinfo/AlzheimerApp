@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 const ChatPage = () => {
@@ -120,41 +119,61 @@ const ChatPage = () => {
 
     const styles = {
         container: {
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
             backgroundColor: 'var(--color-bg-primary)',
             overflow: 'hidden',
         },
+        chatInner: {
+            width: '100%',
+            maxWidth: 1000,
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            boxSizing: 'border-box',
+        },
         messageList: {
             flex: 1,
+            minWidth: 0,
+            overflowX: 'hidden',
             overflowY: 'auto',
-            padding: '16px',
+            padding: '12px 0',
+            paddingBottom: 'var(--section-gap)',
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
-            paddingBottom: '20px',
             WebkitOverflowScrolling: 'touch',
         },
         inputArea: {
-            flexShrink: 0, 
-            padding: '12px 16px',
+            flexShrink: 0,
+            minWidth: 0,
+            padding: '12px 0',
+            paddingBottom: '16px',
             backgroundColor: 'white',
-            borderTop: '1px solid #E5E7EB',
+            borderTop: '1px solid var(--color-border)',
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            paddingBottom: '16px',
-            boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
+            boxShadow: 'var(--card-shadow)',
+            boxSizing: 'border-box',
         },
         input: {
             flex: 1,
-            padding: '12px 16px',
-            borderRadius: '24px',
+            minWidth: 0,
+            maxWidth: '100%',
+            padding: '12px var(--content-padding-x)',
+            borderRadius: 'var(--card-radius-lg)',
             border: '1px solid #E5E7EB',
             fontSize: '16px',
             outline: 'none',
-            backgroundColor: '#F9F9FB',
+            backgroundColor: 'var(--color-bg-primary)',
             minHeight: '44px',
             transition: 'border-color 0.2s',
         },
@@ -171,77 +190,80 @@ const ChatPage = () => {
             cursor: 'pointer',
             flexShrink: 0,
             transition: 'transform 0.2s, box-shadow 0.2s',
-            boxShadow: '0 2px 8px rgba(124, 58, 237, 0.3)',
+            boxShadow: '0 2px 8px rgba(136, 0, 68, 0.25)',
         },
         bubble: (sender) => ({
-            maxWidth: '80%',
-            padding: '12px 16px',
-            borderRadius: '18px',
+            maxWidth: 'min(85%, 20rem)',
+            minWidth: '4.5rem',
+            padding: sender === 'me' ? '0.4375rem 0.625rem' : '0.25rem 0.625rem',
+            borderRadius: '0.75rem',
             backgroundColor: sender === 'me' ? 'var(--color-primary)' : 'white',
-            color: sender === 'me' ? 'white' : '#1F2937',
+            color: sender === 'me' ? 'white' : 'var(--color-text-primary)',
             alignSelf: sender === 'me' ? 'flex-end' : 'flex-start',
-            boxShadow: sender === 'me' ? '0 2px 8px rgba(124, 58, 237, 0.2)' : '0 2px 8px rgba(0,0,0,0.08)',
-            borderBottomRightRadius: sender === 'me' ? '4px' : '18px',
-            borderBottomLeftRadius: sender === 'me' ? '18px' : '4px',
+            boxShadow: sender === 'me' ? '0 2px 10px rgba(136, 0, 68, 0.2)' : '0 2px 8px rgba(0,0,0,0.06)',
+            borderBottomRightRadius: sender === 'me' ? '0.3125rem' : '0.75rem',
+            borderBottomLeftRadius: sender === 'me' ? '0.75rem' : '0.3125rem',
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
+            fontSize: '0.875rem',
+            lineHeight: 1.3,
         }),
         emptyState: {
             textAlign: 'center',
             color: '#9CA3AF',
             marginTop: '40%',
-            fontSize: '15px',
+            fontSize: '0.9375rem',
         },
         senderName: {
-            fontSize: '12px',
+            fontSize: '0.6875rem',
             fontWeight: '700',
             color: 'var(--color-primary)',
-            marginBottom: '4px',
+            marginBottom: '0.125rem',
         },
         messageText: {
             wordBreak: 'break-word',
-            lineHeight: '1.4',
+            lineHeight: 1.3,
+            fontSize: '0.875rem',
+            margin: 0,
         },
         messageTime: {
-            fontSize: '10px',
-            opacity: 0.7,
+            fontSize: '0.625rem',
+            opacity: 0.8,
             textAlign: 'right',
-            marginTop: '4px',
+            marginTop: '0.125rem',
         }
     };
 
     if (loading) return <div style={{display:'flex',justifyContent:'center',padding:'40px',color:'#9CA3AF'}}>Caricamento messaggi...</div>;
 
     return (
-        <div style={styles.container}>
-            <div style={styles.messageList}>
-                 {messages.length === 0 && <div style={styles.emptyState}>Nessun messaggio ancora.<br/>Inizia la conversazione!</div>}
-                 {messages.map(msg => (
-                    <div key={msg.id} style={styles.bubble(msg.sender)}>
+        <div className="chat-page-wrapper chat-page" style={styles.container}>
+            <div className="messages-scroller chat-messages chat-messages-container" style={styles.messageList}>
+                {messages.length === 0 && <div style={styles.emptyState}>Nessun messaggio ancora.<br/>Inizia la conversazione!</div>}
+                {messages.map(msg => (
+                    <div key={msg.id} className={`message-bubble ${msg.sender === 'me' ? 'sent' : 'received'}`} style={styles.bubble(msg.sender)}>
                         {msg.sender === 'other' && <div style={styles.senderName}>{msg.senderName}</div>}
-                        <div style={styles.messageText}>{msg.text}</div>
+                        <p style={styles.messageText}>{msg.text}</p>
                         <div style={styles.messageTime}>{msg.time}</div>
                     </div>
-                 ))}
-                 <div ref={messagesEndRef} />
+                ))}
+                <div ref={messagesEndRef} />
             </div>
-            
-            <div style={styles.inputArea}>
-                <input 
-                    style={styles.input}
-                    placeholder="Scrivi un messaggio..."
-                    value={inputText}
-                    onChange={e => setInputText(e.target.value)}
-                    onKeyPress={e => e.key === 'Enter' && handleSend()}
-                    onFocus={(e) => e.target.style.borderColor = 'var(--color-primary)'}
-                    onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
-                />
-                <button 
-                    style={styles.sendButton} 
-                    onClick={handleSend}
-                    onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-                    onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                    <Send size={20}/>
-                </button>
+
+            <div className="input-outer-wrapper">
+                <div className="custom-chat-input">
+                    <input
+                        type="text"
+                        placeholder="Scrivi un messaggio..."
+                        className="inner-input"
+                        value={inputText}
+                        onChange={e => setInputText(e.target.value)}
+                        onKeyPress={e => e.key === 'Enter' && handleSend()}
+                    />
+                    <button type="button" className="send-button-circle" onClick={handleSend}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
             </div>
         </div>
     );

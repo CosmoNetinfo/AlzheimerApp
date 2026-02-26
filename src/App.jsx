@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
+import ReportUmorePage from './pages/ReportUmorePage';
 import { Bell, ShieldCheck, X } from 'lucide-react';
 
 
@@ -42,6 +43,7 @@ function App() {
                     <Route path="feed" element={<FeedPage />} />
                     <Route path="profilo" element={<ProfilePage />} />
                     <Route path="impostazioni" element={<SettingsPage />} />
+                    <Route path="report-umore" element={<ReportUmorePage />} />
                 </Route>
             </Routes>
         </HashRouter>

@@ -5,13 +5,13 @@ import styles from './TabBar.module.css';
 
 const TabBar = () => {
     return (
-        <nav className={styles.tabBar}>
+        <nav className={`${styles.tabBar} bottom-navbar`} aria-label="Navigazione principale">
             <NavLink
                 to="/"
                 className={({ isActive }) => `${styles.tab} ${isActive ? styles.active : ''}`}
             >
                 <Home size={24} />
-                <span className={styles.label}>Inizio</span>
+                <span className={styles.label}>HOME</span>
             </NavLink>
 
             <NavLink

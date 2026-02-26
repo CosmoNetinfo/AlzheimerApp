@@ -26,10 +26,10 @@ const FeedPage = () => {
     // Helper functions for mood
     const getMoodColor = (mood) => {
         switch (mood) {
-            case 'happy': return '#10B981'; // Green
-            case 'neutral': return '#F59E0B'; // Yellow/Amber
-            case 'sad': return '#EF4444'; // Red
-            default: return '#E5E7EB'; // Gray default
+            case 'happy': return '#22c55e';
+            case 'neutral': return '#eab308';
+            case 'sad': return '#ef4444';
+            default: return '#E5E7EB';
         }
     };
 
@@ -279,9 +279,10 @@ const FeedPage = () => {
     };
 
     const styles = {
-        container: { backgroundColor: 'var(--color-bg-primary)', minHeight: '100%', padding: '0 0 100px 0' },
-        stickyHeader: { position: 'sticky', top: 0, zIndex: 100, backgroundColor: 'var(--color-bg-primary)', padding: '12px 0 1px 0' },
-        card: { backgroundColor: '#fff', margin: '0 12px 12px 12px', borderRadius: '16px', padding: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' },
+        container: { width: '100%', maxWidth: '100%', minWidth: 0, backgroundColor: 'var(--color-bg-primary)', minHeight: '100%', padding: '0 14px 100px 14px', boxSizing: 'border-box', overflowX: 'hidden' },
+        stickyHeader: { position: 'sticky', top: 0, zIndex: 100, backgroundColor: 'var(--color-bg-primary)', padding: '12px 0 1px 0', maxWidth: '100%' },
+        card: { backgroundColor: '#fff', margin: '0 0 var(--section-gap) 0', borderRadius: 'var(--card-radius)', padding: 'var(--content-padding-x)', boxShadow: 'var(--card-shadow)', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
+        lightbox: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, cursor: 'pointer', padding: '20px', boxSizing: 'border-box' },
         avatar: (mood) => ({ 
             width: '40px', 
             height: '40px', 
@@ -314,20 +315,21 @@ const FeedPage = () => {
             transition: 'all 0.3s ease',
         }),
         avatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
-        input: { flex: 1, backgroundColor: '#F3F4F6', border: 'none', borderRadius: '22px', padding: '10px 16px', fontSize: '15px', outline: 'none' },
+        input: { flex: 1, minWidth: 0, maxWidth: '100%', backgroundColor: '#F3F4F6', border: 'none', borderRadius: '22px', padding: '10px 16px', fontSize: '15px', outline: 'none' },
         btnPrimary: { backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer' },
-        postImage: { width: '100%', maxHeight: '400px', objectFit: 'cover', borderRadius: '12px', margin: '8px 0', cursor: 'zoom-in' },
+        postImageWrap: { width: '100%', aspectRatio: '4/3', overflow: 'hidden', borderRadius: 'var(--card-radius)', margin: '8px 0', cursor: 'zoom-in', display: 'block', backgroundColor: '#f0f0f0' },
+        postImage: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
         actionBtn: { background: 'none', border: 'none', color: 'var(--color-primary-dark)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600', fontSize: '14px' },
         commentSection: { marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f0f0f0' },
         comment: { display: 'flex', gap: '10px', marginBottom: '10px' },
-        commentBubble: { backgroundColor: '#F3F4F6', padding: '8px 12px', borderRadius: '14px', flex: 1 },
+        commentBubble: { backgroundColor: '#F3F4F6', padding: '8px 12px', borderRadius: 'var(--card-radius)', flex: 1, minWidth: 0, wordBreak: 'break-word', overflowWrap: 'break-word' },
         commentAuthor: { fontWeight: '700', fontSize: '13px', color: 'var(--color-primary-dark)' },
-        commentText: { fontSize: '14px', color: '#333', textAlign: 'left' },
+        commentText: { fontSize: '14px', color: '#333', textAlign: 'left', wordBreak: 'break-word' },
         statsBar: { display: 'flex', justifyContent: 'space-between', padding: '8px 4px', borderBottom: '1px solid #f9f9f9', marginBottom: '8px', fontSize: '13px', color: '#666' }
     };
 
     return (
-        <div style={styles.container}>
+        <div style={styles.container} className="last-scroll-block">
             {enlargedImage && (
                 <div style={styles.lightbox} onClick={() => setEnlargedImage(null)}>
                     <img src={enlargedImage} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="Fullscreen" />
@@ -344,8 +346,8 @@ const FeedPage = () => {
                         <input style={styles.input} placeholder={`A che pensi, ${user.name}?`} value={newPostText} onChange={(e) => setNewPostText(e.target.value)} />
                     </div>
                     {selectedImage && (
-                        <div style={{ position: 'relative', marginBottom: '12px' }}>
-                            <img src={selectedImage} style={{ width: '100%', borderRadius: '12px' }} alt="Preview" />
+                        <div style={{ position: 'relative', marginBottom: '12px', maxWidth: '100%' }}>
+                            <img src={selectedImage} style={{ width: '100%', maxWidth: '100%', borderRadius: '12px', display: 'block' }} alt="Preview" />
                             <button onClick={() => setSelectedImage(null)} style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', borderRadius: '50%', padding: '4px' }}><X size={16}/></button>
                         </div>
                     )}
@@ -363,11 +365,11 @@ const FeedPage = () => {
                 return (
                 <div key={post.id} style={styles.card}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                        <div style={{ display: 'flex', gap: '10px' }}>
+                        <div style={{ display: 'flex', gap: '10px', minWidth: 0, flex: 1 }}>
                             <div style={styles.avatar(authorMood)}>
                                 {post.author_photo ? <img src={post.author_photo} style={styles.avatarImg} alt="Autore" /> : (post.author?.[0] || 'U')}
                             </div>
-                            <div>
+                            <div style={{ minWidth: 0 }}>
                                 <div style={{ fontWeight: '700', color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     {post.author}
                                     {authorMood && <span style={{ fontSize: '18px' }}>{getMoodEmoji(authorMood)}</span>}
@@ -378,8 +380,12 @@ const FeedPage = () => {
                         <button style={{ background: 'none', border: 'none', color: '#ccc' }} onClick={() => deletePost(post.id)}><Trash2 size={16}/></button>
                     </div>
 
-                    <div style={{ fontSize: '16px', color: '#333', marginBottom: '8px', textAlign: 'left' }}>{post.text}</div>
-                    {post.image && <img src={post.image} style={styles.postImage} onClick={() => setEnlargedImage(post.image)} alt="Post" />}
+                    <div style={{ fontSize: '16px', color: '#333', marginBottom: '8px', textAlign: 'left', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{post.text}</div>
+                    {post.image && (
+                        <div style={styles.postImageWrap} onClick={() => setEnlargedImage(post.image)}>
+                            <img src={post.image} style={styles.postImage} alt="Post" />
+                        </div>
+                    )}
 
                     {/* Barra Statistiche */}
                     <div style={styles.statsBar}>

@@ -1,62 +1,82 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { 
     Bell, 
     Calendar, 
     Plus, 
-    Smile, 
-    Meh, 
-    Frown, 
     Heart,
     Trash2,
     CheckCircle2,
-    Settings
+    Settings,
+    Apple,
+    Footprints,
+    Brain,
+    Droplets
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { wellnessQuotes, getDayOfYear } from '../data/quotes';
+import { addMoodEntry, getMoodHistory, getLatestMood } from '../utils/moodHistory';
+import ClinicalDashboard from '../components/ClinicalDashboard';
+import MoodTracker from '../components/MoodTracker';
 
 const initialTasks = [
-    { id: 1, text: 'Prendere farmaci mattino', time: '08:30', completed: false },
-    { id: 2, text: 'Chiudere la porta a chiave', time: '21:00', completed: false },
-    { id: 3, text: 'Bere un bicchiere d\'acqua', time: '10:00', completed: true },
-    { id: 4, text: 'Chiamare Maria', time: '11:45', completed: false },
+    { id: 1, text: 'Prendere medicine mattina', time: '08:00', completed: false },
+    { id: 2, text: 'Riposo', time: '12:00', completed: false },
+    { id: 3, text: 'Passeggiata', time: '15:30', completed: false },
+    { id: 4, text: 'Bere un bicchiere d\'acqua', time: '10:00', completed: false },
+    { id: 5, text: 'Chiudere la porta a chiave', time: '21:00', completed: false },
 ];
 
-const wellnessQuotes = [
-    "Ricorda che ogni piccolo gesto di cura oggi è un seme che fiorirà nel cuore di chi ami.",
-    "Il respiro è il ponte che collega la vita alla coscienza, che unisce il corpo ai tuoi pensieri.",
-    "Non contare i giorni, fai in modo che i giorni contino.",
-    "La gentilezza è la lingua che il sordo può sentire e il cieco può vedere.",
-    "Circondati di persone che ti fanno sentire la versione migliore di te stesso.",
-    "Ogni giorno è una nuova opportunità per fare la differenza, anche se piccola.",
-    "La mente è come un giardino: coltiva pensieri d'amore e raccoglierai bellezza.",
-    "Ascolta il tuo cuore, è lì che risiedono le tue verità più profonde.",
-    "La pazienza è la chiave che apre tutte le porte del benessere interiore.",
-    "Un sorriso è il modo più rapido per cambiare la tua giornata e quella degli altri."
-];
+const QUOTE_ICON_COLOR = '#D97706';
+
+/** Converte "HH:MM" o "H:MM" in minuti dall'inizio del giorno per ordinare per orario */
+function timeToMinutes(timeStr) {
+  if (!timeStr || timeStr === '--:--') return Infinity;
+  const parts = String(timeStr).trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!parts) return Infinity;
+  return parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+}
+
+const categoryIcons = {
+  nutrizione: Apple,
+  movimento: Footprints,
+  mente: Brain,
+  idratazione: Droplets,
+};
 
 const ListPage = () => {
     const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{}');
     const isPatient = user.role === 'patient';
+    const isHealthcare = user.role === 'healthcare';
+    const reduceMotion = useReducedMotion();
     
     const [tasks, setTasks] = useState(() => {
         const saved = localStorage.getItem('alzheimer_tasks');
-        return saved ? JSON.parse(saved) : initialTasks;
+        if (!saved) return initialTasks;
+        try {
+            const parsed = JSON.parse(saved);
+            if (!Array.isArray(parsed) || parsed.length === 0) return initialTasks;
+            // Se sono le vecchie 4 attività predefinite, passa alle 5 nuove
+            const isOldDefaults = parsed.length === 4 && parsed.some(t => t.text === 'Prendere farmaci mattino');
+            return isOldDefaults ? initialTasks : parsed;
+        } catch {
+            return initialTasks;
+        }
     });
     const [newTaskText, setNewTaskText] = useState("");
     const [newTaskTime, setNewTaskTime] = useState("");
     const [showManage, setShowManage] = useState(false);
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-    const [currentMood, setCurrentMood] = useState(null); // 'happy', 'neutral', 'sad'
+    const [currentMood, setCurrentMood] = useState(() => getLatestMood()); // sync con moodHistory (localStorage)
     const [loadingMood, setLoadingMood] = useState(true);
+    const [moodToast, setMoodToast] = useState(null);
 
-    // Get Daily Quote based on the day of the year
-    const dailyQuote = useMemo(() => {
-        const now = new Date();
-        const start = new Date(now.getFullYear(), 0, 0);
-        const diff = now - start;
-        const oneDay = 1000 * 60 * 60 * 24;
-        const dayOfYear = Math.floor(diff / oneDay);
-        return wellnessQuotes[dayOfYear % wellnessQuotes.length];
+    // Frase del giorno: indice = giorno dell'anno (1-365)
+    const dailyQuoteData = useMemo(() => {
+        const dayOfYear = getDayOfYear();
+        const index = Math.min(dayOfYear - 1, wellnessQuotes.length - 1);
+        return wellnessQuotes[index];
     }, []);
 
     // Salva ogni volta che i task cambiano
@@ -95,22 +115,37 @@ const ListPage = () => {
     }, [isPatient, user.id, user.name, user.surname]);
 
     const handleMoodSelect = async (mood) => {
-        if (!isPatient) return;
-        
         setCurrentMood(mood);
-        try {
-            const profileId = user.id || (user.name + (user.surname || ''));
-            await supabase.from('profiles').upsert([{ 
-                id: profileId, 
-                current_mood: mood,
-                name: user.name,
-                surname: user.surname,
-                role: user.role
-            }]);
-        } catch (e) {
-            console.error("Error saving mood", e);
+        addMoodEntry(mood);
+        if (isPatient) {
+            const ora = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+            setMoodToast(`Umore delle ${ora} registrato con successo!`);
+            try {
+                const profileId = user.id || (user.name + (user.surname || ''));
+                await supabase.from('profiles').upsert([{
+                    id: profileId,
+                    current_mood: mood,
+                    name: user.name,
+                    surname: user.surname,
+                    role: user.role
+                }]);
+            } catch (e) {
+                console.error("Error saving mood", e);
+            }
         }
     };
+
+    useEffect(() => {
+        if (!moodToast) return;
+        const t = setTimeout(() => setMoodToast(null), 3000);
+        return () => clearTimeout(t);
+    }, [moodToast]);
+
+    useEffect(() => {
+        const onMoodSaved = () => setCurrentMood(getLatestMood());
+        window.addEventListener('patientMoodSaved', onMoodSaved);
+        return () => window.removeEventListener('patientMoodSaved', onMoodSaved);
+    }, []);
 
     useEffect(() => {
         const check = () => {
@@ -153,46 +188,52 @@ const ListPage = () => {
 
     const styles = {
         container: {
-            padding: '24px',
+            padding: 'var(--content-padding-y) var(--content-padding-x)',
             width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            boxSizing: 'border-box',
+            overflowX: 'hidden',
         },
         header: {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            marginBottom: '24px',
+            marginBottom: 'var(--section-gap)',
         },
         greeting: {
             fontSize: '28px',
             fontWeight: 'bold',
             color: '#1A1A1A',
         },
-        subHeader: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            color: '#7C3AED',
-            fontSize: '14px',
-            marginTop: '4px',
-            fontWeight: '600',
-        },
         settingsLink: {
             color: '#9CA3AF',
             padding: '8px',
             backgroundColor: 'white',
-            borderRadius: '12px',
+            borderRadius: 'var(--card-radius)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+            boxShadow: 'var(--card-shadow)',
         },
         agendaCard: {
-            background: 'linear-gradient(135deg, #7C3AED 0%, #A855F7 100%)',
-            borderRadius: '24px',
-            padding: '24px',
+            background: 'var(--color-primary)',
+            borderRadius: 'var(--card-radius-lg)',
+            padding: 'var(--content-padding-y) 20px',
             color: 'white',
-            marginBottom: '20px',
-            boxShadow: '0 10px 25px rgba(124, 58, 237, 0.3)',
+            marginBottom: 'var(--section-gap)',
+            boxShadow: '0 4px 16px rgba(146, 72, 122, 0.25), 0 2px 6px rgba(0, 0, 0, 0.06)',
+        },
+        agendaDateRow: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '15px',
+            fontWeight: '600',
+            opacity: 0.95,
+            marginBottom: '16px',
+            paddingBottom: '12px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
         },
         cardTitle: {
             display: 'flex',
@@ -203,24 +244,26 @@ const ListPage = () => {
             marginBottom: '20px',
         },
         taskItem: {
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
             backdropFilter: 'blur(10px)',
-            borderRadius: '16px',
-            padding: '16px',
+            borderRadius: 'var(--card-radius)',
+            padding: '12px 18px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             marginBottom: '12px',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
             cursor: 'pointer',
         },
         taskLeft: {
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
+            minWidth: 0,
+            flex: 1,
         },
         taskIcon: {
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            backgroundColor: 'rgba(255, 255, 255, 0.25)',
             width: '32px',
             height: '32px',
             borderRadius: '50%',
@@ -231,6 +274,9 @@ const ListPage = () => {
         taskText: {
             fontWeight: '600',
             fontSize: '16px',
+            wordBreak: 'break-word',
+            minWidth: 0,
+            color: 'white',
         },
         completedText: {
             textDecoration: 'line-through',
@@ -238,12 +284,13 @@ const ListPage = () => {
         },
         taskTime: {
             fontSize: '14px',
-            opacity: 0.9,
-            fontWeight: '500',
+            opacity: 0.95,
+            fontWeight: '600',
+            color: 'var(--color-primary-dark)',
         },
         manageBtn: {
             backgroundColor: 'white',
-            color: '#7C3AED',
+            color: 'var(--color-primary-dark)',
             padding: '12px 20px',
             borderRadius: '12px',
             fontWeight: 'bold',
@@ -256,101 +303,87 @@ const ListPage = () => {
         secondaryCards: {
             display: 'grid',
             gridTemplateColumns: 'minmax(0, 1fr)',
-            gap: '20px',
-            marginBottom: '20px',
+            gap: 'var(--section-gap)',
+            marginBottom: 'var(--section-gap)',
         },
         whiteCard: {
             backgroundColor: 'white',
-            borderRadius: '24px',
-            padding: '24px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+            borderRadius: 'var(--card-radius-lg)',
+            padding: 'var(--content-padding-y)',
+            boxShadow: 'var(--card-shadow)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             textAlign: 'center',
         },
-        moodIconContainer: {
-            display: 'flex',
-            gap: '12px',
-            marginTop: '16px',
-            marginBottom: '12px',
-        },
-        moodBtn: (mood) => ({
-            width: '64px',
-            height: '64px',
-            borderRadius: '18px',
-            backgroundColor: currentMood === mood ? 'rgba(124, 58, 237, 0.1)' : '#F3F4F6',
-            border: currentMood === mood ? '2px solid #7C3AED' : '2px solid transparent',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: isPatient ? 'pointer' : 'default',
-            pointerEvents: isPatient ? 'auto' : 'none',
-            transition: 'all 0.2s ease',
-            opacity: (!isPatient && currentMood !== mood && currentMood !== null) ? 0.4 : 1,
-            transform: currentMood === mood ? 'scale(1.05)' : 'scale(1)',
-            userSelect: 'none',
-            WebkitTapHighlightColor: 'transparent',
-        }),
         quoteCard: {
-            backgroundColor: '#FFFBEB',
-            borderRadius: '24px',
-            padding: '24px',
-            border: '1px solid #FEF3C7',
+            backgroundColor: 'rgba(234, 172, 139, 0.25)',
+            borderRadius: 'var(--card-radius-lg)',
+            padding: 'var(--content-padding-y)',
+            border: '1px solid rgba(234, 172, 139, 0.5)',
             position: 'relative',
             overflow: 'hidden',
+            minWidth: 0,
+            maxWidth: '100%',
+        },
+        quoteRow: {
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            position: 'relative',
+            zIndex: 1,
+            minWidth: 0,
+        },
+        quoteIconWrap: {
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            marginTop: '2px',
         },
         quoteText: {
-            color: '#92400E',
+            color: 'var(--color-primary)',
             fontSize: '16px',
             fontStyle: 'italic',
             lineHeight: '1.6',
-            position: 'relative',
-            zIndex: 1,
+            margin: 0,
+            flex: 1,
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
         },
         quoteLabel: {
-            color: '#D97706',
+            color: 'var(--color-primary)',
             fontWeight: 'bold',
             fontSize: '14px',
             marginBottom: '8px',
             display: 'block',
         },
-        heartBg: {
-            position: 'absolute',
-            right: '-10px',
-            bottom: '-10px',
-            color: '#FEF3C7',
-            opacity: 0.5,
-        },
         inputArea: {
             backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '20px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-            marginTop: '20px',
-            marginBottom: '20px',
+            padding: 'var(--content-padding-y)',
+            borderRadius: 'var(--card-radius)',
+            boxShadow: 'var(--card-shadow)',
+            marginTop: 'var(--section-gap)',
+            marginBottom: 'var(--section-gap)',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
         },
         input: {
             width: '100%',
+            maxWidth: '100%',
             padding: '12px',
             borderRadius: '10px',
             border: '1px solid #E5E7EB',
             marginBottom: '10px',
             fontSize: '16px',
+            boxSizing: 'border-box',
         }
     };
 
     return (
         <div style={styles.container}>
-            {/* Header / Guest Greeting */}
+            {/* Header: saluto e impostazioni */}
             <div style={styles.header}>
-                <div>
-                    <div style={styles.greeting}>Ciao, {user.name || 'lol'}!</div>
-                    <div style={styles.subHeader}>
-                        <Calendar size={16} />
-                        <span>{new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
-                    </div>
-                </div>
+                <div style={styles.greeting}>Ciao, {user.name || 'lol'}!</div>
                 <Link to="/impostazioni" style={styles.settingsLink} aria-label="Impostazioni">
                     <Settings size={20} />
                 </Link>
@@ -360,27 +393,51 @@ const ListPage = () => {
             {!notificationsEnabled && (
                 <div style={{ margin: '0 0 20px 0', padding: '16px', backgroundColor: '#FFF4E5', border: '1px solid #FFE58F', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <Bell style={{ color: '#E67E22' }} size={24} />
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 'bold', color: '#856404', fontSize: '15px' }}>Avvisi Disattivati</div>
                     </div>
                 </div>
             )}
 
-            {/* Agenda Card */}
+            {/* Operatore sanitario: solo ClinicalDashboard (niente Pillola, niente Agenda) */}
+            {isHealthcare && (
+                <div className="last-scroll-block">
+                    <ClinicalDashboard />
+                </div>
+            )}
+
+            {/* Paziente / Caregiver: Pillola, Agenda, Stato del Paziente */}
+            {!isHealthcare && (
+            <>
+            {/* Agenda di Oggi: data + calendario e attività */}
             <div style={styles.agendaCard}>
+                <div style={styles.agendaDateRow}>
+                    <Calendar size={20} />
+                    <span>{new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                </div>
                 <div style={styles.cardTitle}>
                     <CheckCircle2 size={24} />
                     <span>Agenda di Oggi</span>
                 </div>
 
-                {tasks.filter(t => !t.completed || showManage).map(task => (
-                    <div 
+                <AnimatePresence mode="popLayout">
+                {[...tasks]
+                  .filter(t => !t.completed || showManage)
+                  .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time))
+                  .map((task, i) => (
+                    <motion.div 
                         key={task.id} 
+                        layout={!reduceMotion}
+                        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={reduceMotion ? false : { opacity: 0, scale: 0.95 }}
+                        transition={{ duration: reduceMotion ? 0 : 0.2, delay: reduceMotion ? 0 : i * 0.03 }}
+                        className="agenda-item-row"
                         style={styles.taskItem}
                         onClick={() => toggleTask(task.id)}
                     >
-                        <div style={styles.taskLeft}>
-                            <div style={styles.taskIcon}>
+                        <div className="agenda-item-left" style={styles.taskLeft}>
+                            <div className="plus-icon-container" style={styles.taskIcon}>
                                 {task.completed ? <CheckCircle2 size={18} /> : <Plus size={18} />}
                             </div>
                             <span style={{
@@ -402,20 +459,30 @@ const ListPage = () => {
                                 }} 
                             />
                         )}
-                    </div>
+                    </motion.div>
                 ))}
+                </AnimatePresence>
 
-                <div 
-                    style={styles.manageBtn} 
-                    onClick={() => setShowManage(!showManage)}
-                >
-                    {showManage ? "Salva Modifiche" : "Gestisci Attività"}
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+                    <div 
+                        style={styles.manageBtn} 
+                        onClick={() => setShowManage(!showManage)}
+                    >
+                        {showManage ? "Salva Modifiche" : "Gestisci Attività"}
+                    </div>
                 </div>
             </div>
 
             {/* Add Task Area */}
+            <AnimatePresence>
             {showManage && (
-                <div style={styles.inputArea}>
+                <motion.div
+                    initial={reduceMotion ? false : { opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={reduceMotion ? false : { opacity: 0 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.2 }}
+                    style={styles.inputArea}
+                >
                     <h4 style={{ margin: '0 0 10px 0' }}>Nuova Attività</h4>
                     <input
                         style={styles.input}
@@ -430,46 +497,59 @@ const ListPage = () => {
                         onChange={(e) => setNewTaskTime(e.target.value)}
                     />
                     <button 
-                        style={{ ...styles.manageBtn, backgroundColor: '#7C3AED', color: 'white', width: '100%', marginTop: '10px' }}
+                        style={{ ...styles.manageBtn, backgroundColor: 'var(--color-primary)', color: 'white', width: '100%', marginTop: '10px' }}
                         onClick={addTask}
                     >
                         Aggiungi
                     </button>
-                </div>
+                </motion.div>
             )}
+            </AnimatePresence>
 
-            {/* Secondary Cards Row */}
-            <div style={styles.secondaryCards}>
-                {/* Mood Card */}
-                <div style={styles.whiteCard}>
-                    <span style={{ fontWeight: 'bold', fontSize: '18px' }}>
-                        {isPatient ? "Come ti senti?" : "Stato del Paziente"}
-                    </span>
-                    <div style={styles.moodIconContainer}>
-                        <div style={styles.moodBtn('happy')} onClick={() => handleMoodSelect('happy')}>
-                            <Smile size={36} color={currentMood === 'happy' ? "#7C3AED" : "#F59E0B"} />
-                        </div>
-                        <div style={styles.moodBtn('neutral')} onClick={() => handleMoodSelect('neutral')}>
-                            <Meh size={36} color={currentMood === 'neutral' ? "#7C3AED" : "#9CA3AF"} />
-                        </div>
-                        <div style={styles.moodBtn('sad')} onClick={() => handleMoodSelect('sad')}>
-                            <Frown size={36} color={currentMood === 'sad' ? "#7C3AED" : "#EF4444"} />
-                        </div>
-                    </div>
-                    <span style={{ fontSize: '12px', color: '#6B7280' }}>
-                        {isPatient ? "Tocca l'emozione che provi ora" : "L'ultimo umore registrato dal paziente"}
-                    </span>
-                </div>
+            {/* Secondary Cards Row (ultimo blocco: padding-bottom su mobile per superare la navbar) */}
+            <div className="last-scroll-block" style={styles.secondaryCards}>
+                {/* Mood Card: setMood = handleMoodSelect (salva umore + aggiorna resoconto) */}
+                <motion.div
+                    style={{ ...styles.whiteCard, pointerEvents: 'auto', position: 'relative', zIndex: 10 }}
+                    initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.3, delay: reduceMotion ? 0 : 0.1 }}
+                >
+                    <MoodTracker
+                        userRole={user.role}
+                        mood={currentMood}
+                        setMood={handleMoodSelect}
+                        moodToast={moodToast}
+                        reduceMotion={!!reduceMotion}
+                    />
+                </motion.div>
 
-                {/* Wisdom Pill Card */}
-                <div style={styles.quoteCard}>
+                {/* Pillola di Benessere: frase del giorno + icona per categoria (responsive su mobile) */}
+                <motion.div 
+                    className="quote-card-responsive"
+                    style={styles.quoteCard}
+                    initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.3, delay: reduceMotion ? 0 : 0.15 }}
+                >
                     <span style={styles.quoteLabel}>Pillola di Benessere</span>
-                    <p style={styles.quoteText}>
-                        "{dailyQuote}"
-                    </p>
-                    <Heart size={80} style={styles.heartBg} />
-                </div>
+                    <div style={styles.quoteRow}>
+                        {dailyQuoteData && (() => {
+                            const IconComponent = categoryIcons[dailyQuoteData.category] || Heart;
+                            return (
+                                <span style={styles.quoteIconWrap} aria-hidden>
+                                    <IconComponent size={24} color={QUOTE_ICON_COLOR} />
+                                </span>
+                            );
+                        })()}
+                        <p className="quote-text-responsive" style={styles.quoteText}>
+                            "{dailyQuoteData?.text ?? ''}"
+                        </p>
+                    </div>
+                </motion.div>
             </div>
+            </>
+            )}
         </div>
     );
 };

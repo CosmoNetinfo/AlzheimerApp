@@ -35,16 +35,22 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
--- 4. Aggiornamento Policies per Profili (Ora basate sull'ID utente vero)
+-- 4. Colonne aggiuntive per profilo (mood, bio, location) – idempotente
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS current_mood TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS location TEXT;
+
+-- 5. RLS e Policies per Profili – idempotente
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
--- Chiunque può LEGGERE i profili (per vederli nella chat o nei post)
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles
   FOR SELECT USING (true);
 
--- Solo l'utente stesso può MODIFICARE il proprio profilo
+DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
 CREATE POLICY "Users can insert their own profile" ON profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 CREATE POLICY "Users can update own profile" ON profiles
   FOR UPDATE USING (auth.uid() = id);

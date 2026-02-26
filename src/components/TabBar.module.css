@@ -4,37 +4,42 @@
     transition: all 0.3s ease;
 }
 
-/* Mobile Layout */
+/* Mobile Layout: sfondo trasparente + blur (stile iOS), safe area per tacchetta */
 @media screen and (max-width: 600px) {
     .tabBar {
         bottom: 0;
         left: 0;
         right: 0;
-        height: calc(var(--tab-bar-height) + var(--safe-area-bottom));
-        background-color: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border-top: 1px solid var(--color-border);
+        height: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px));
+        min-height: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px));
+        background-color: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid rgba(146, 72, 122, 0.08);
+        box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.04);
         display: flex;
         justify-content: space-around;
-        padding-bottom: var(--safe-area-bottom);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 }
 
-/* PC Layout (Sidebar) */
+/* PC Layout (Sidebar): larghezza da variabile, icone/etichette allineate e non tagliate dal bordo */
 @media screen and (min-width: 601px) {
     .tabBar {
         top: 0;
         left: 0;
         bottom: 0;
-        width: 80px;
-        background-color: white;
-        border-right: 1px solid var(--color-border);
+        width: var(--sidebar-width);
+        background-color: rgba(255, 255, 255, 0.94);
+        border-right: 1px solid rgba(146, 72, 122, 0.08);
+        box-shadow: 1px 0 0 rgba(0, 0, 0, 0.02);
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         gap: 30px;
-        padding-top: 40px;
+        padding: 40px 10px 24px;
+        box-sizing: border-box;
     }
 }
 
@@ -44,21 +49,34 @@
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    color: #999;
-    transition: all 0.2s ease;
-    padding: 10px;
-    border-radius: 12px;
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease, background-color 0.2s ease;
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.875rem;
+    min-width: 0;
+}
+
+.tab svg {
+    width: 1.5rem;
+    height: 1.5rem;
 }
 
 @media screen and (min-width: 601px) {
     .tab:hover {
-        background-color: #f3f4f6;
+        background-color: rgba(146, 72, 122, 0.06);
         color: var(--color-primary);
     }
 }
 
 .active {
-    color: var(--color-primary);
+    color: var(--color-primary-dark);
+    font-weight: 600;
+}
+
+@media screen and (min-width: 601px) {
+    .active {
+        background-color: rgba(146, 72, 122, 0.08);
+    }
 }
 
 @media screen and (max-width: 600px) {
@@ -68,9 +86,9 @@
 }
 
 .label {
-    font-size: 11px;
-    font-weight: 700;
-    margin-top: 4px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.04em;
 }

@@ -30,13 +30,14 @@ const Header = ({ title }) => {
             padding: '0 16px',
         },
         title: {
-            fontSize: '22px',
+            fontSize: '1.25rem',
             color: 'var(--color-primary-dark)',
-            fontWeight: '800'
+            fontWeight: '700',
+            letterSpacing: '-0.02em',
         },
         profileBtn: {
             position: 'absolute',
-            left: '16px',
+            left: '24px',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
@@ -53,9 +54,10 @@ const Header = ({ title }) => {
             alignItems: 'center',
             justifyContent: 'center',
             color: 'white',
-            fontWeight: 'bold',
+            fontWeight: '600',
             overflow: 'hidden',
-            fontSize: '16px'
+            fontSize: '1rem',
+            boxShadow: 'var(--shadow-sm)',
         },
         avatarImg: {
             width: '100%',
@@ -68,13 +70,15 @@ const Header = ({ title }) => {
             background: 'none',
             border: 'none',
             color: 'var(--color-primary)',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            padding: '8px',
+            borderRadius: '10px',
         }
     };
 
     return (
-        <header style={styles.header}>
-            <Link to="/profilo" style={styles.profileBtn}>
+        <header className="app-header" style={styles.header}>
+            <Link to="/profilo" className="app-header-profile" style={styles.profileBtn}>
                 <div style={styles.avatar}>
                     {user.photo ? (
                         <img src={user.photo} style={styles.avatarImg} alt="Profilo" />
@@ -84,7 +88,7 @@ const Header = ({ title }) => {
                 </div>
             </Link>
             <h1 style={styles.title}>{title}</h1>
-            <Link to="/impostazioni" style={styles.settingsBtn}>
+            <Link to="/impostazioni" className="app-header-settings" style={styles.settingsBtn}>
                 <Settings />
             </Link>
         </header>
