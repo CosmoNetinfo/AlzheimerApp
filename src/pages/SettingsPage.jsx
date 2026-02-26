@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LogOut,
@@ -8,23 +8,26 @@ import {
   Type,
   ShieldAlert,
   HelpCircle,
-  Info,
   ChevronRight,
   Phone,
-  X
+  Camera
 } from "lucide-react";
+import { supabase } from "../supabaseClient";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("alzheimer_user");
-    return saved ? JSON.parse(saved) : { name: "Utente", surname: "", photo: null };
+    return saved ? JSON.parse(saved) : { name: "Utente", surname: "", photo: null, id: null };
   });
+
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
 
   const [notifications, setNotifications] = useState(false);
   const [isDenied, setIsDenied] = useState(false);
-  const [largeText, setLargeText] = useState(() => localStorage.getItem("setting_largeText") === "true");
+  const [isLargeFont, setIsLargeFont] = useState(() => localStorage.getItem("setting_largeText") === "true");
   const [sosNumber, setSosNumber] = useState(() => localStorage.getItem("setting_sosNumber") || "");
   const [isEditingSos, setIsEditingSos] = useState(false);
   const [tempSos, setTempSos] = useState(sosNumber);
@@ -98,10 +101,10 @@ const SettingsPage = () => {
   }, [notifications]);
 
   useEffect(() => {
-    localStorage.setItem("setting_largeText", largeText);
-    if (largeText) document.body.classList.add("large-text-mode");
-    else document.body.classList.remove("large-text-mode");
-  }, [largeText]);
+    localStorage.setItem("setting_largeText", isLargeFont);
+    if (isLargeFont) document.documentElement.classList.add("large-font-mode");
+    else document.documentElement.classList.remove("large-font-mode");
+  }, [isLargeFont]);
 
   const handleLogout = () => {
     if (window.confirm("Disconnettere l'account?")) {
@@ -110,33 +113,76 @@ const SettingsPage = () => {
     }
   };
 
+  const handlePhotoChange = async (e) => {
+    const file = e.target?.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    const profileId = user.id || (user.name + (user.surname || ""));
+    if (!profileId) return;
+    setUploadingPhoto(true);
+    try {
+      const bucket = "avatars";
+      const path = `${profileId}/avatar`;
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
+      const photoUrl = urlData?.publicUrl || null;
+      await supabase.from("profiles").upsert([{
+        id: profileId,
+        name: user.name,
+        surname: user.surname,
+        role: user.role,
+        photo_url: photoUrl
+      }]);
+      const updated = { ...user, photo: photoUrl };
+      setUser(updated);
+      localStorage.setItem("alzheimer_user", JSON.stringify(updated));
+    } catch (err) {
+      console.error("Errore upload foto:", err);
+      alert('Impossibile caricare la foto. Verifica che il bucket "avatars" esista in Supabase con accesso pubblico.');
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const styles = {
-    container: { backgroundColor: "var(--color-bg-primary)", minHeight: "100%", padding: "16px", paddingBottom: "120px" },
-    header: { display: "flex", alignItems: "center", marginBottom: "24px", gap: "12px" },
-    backBtn: { padding: "8px", background: "white", borderRadius: "50%", color: "var(--color-primary-dark)", border: "none" },
+    container: { backgroundColor: "var(--color-bg-primary)", minHeight: "100%", padding: "var(--content-padding-x)", paddingBottom: "120px", width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", overflowX: "hidden" },
+    header: { display: "flex", alignItems: "center", marginBottom: "var(--section-gap)", gap: "12px" },
+    backBtn: { padding: "8px", background: "white", borderRadius: "50%", color: "var(--color-primary-dark)", border: "none", boxShadow: "var(--card-shadow)" },
     pageTitle: { fontSize: "24px", fontWeight: "800", color: "var(--color-primary-dark)", margin: 0 },
-    profileSection: { backgroundColor: "white", borderRadius: "16px", padding: "20px", display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px", border: '1px solid var(--color-border)' },
-    avatar: { width: "60px", height: "60px", borderRadius: "50%", backgroundColor: "var(--color-primary)", display: "flex", alignItems: "center", justifyContent: "center", color: "white" },
+    profileSection: { backgroundColor: "white", borderRadius: "var(--card-radius)", padding: "var(--content-padding-y)", display: "flex", alignItems: "center", gap: "16px", marginBottom: "var(--section-gap)", border: "1px solid var(--color-border)", boxShadow: "var(--card-shadow)" },
+    avatarWrap: { position: "relative", background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", flexShrink: 0 },
+    avatar: { width: "60px", height: "60px", borderRadius: "50%", backgroundColor: "var(--color-primary)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", overflow: "hidden" },
+    avatarOverlay: { position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.5)", color: "white", fontSize: "10px", padding: "2px", display: "flex", alignItems: "center", justifyContent: "center", gap: "2px", borderBottomLeftRadius: "50%", borderBottomRightRadius: "50%" },
     sectionLabel: { fontSize: "13px", fontWeight: "700", color: "var(--color-primary-dark)", textTransform: "uppercase", margin: "0 0 8px 12px", opacity: 0.7 },
-    menuCard: { backgroundColor: "white", borderRadius: "16px", overflow: "hidden", marginBottom: "24px", border: '1px solid var(--color-border)' },
+    menuCard: { backgroundColor: "white", borderRadius: "var(--card-radius)", overflow: "hidden", marginBottom: "var(--section-gap)", border: "1px solid var(--color-border)", boxShadow: "var(--card-shadow)", maxWidth: "100%", boxSizing: "border-box" },
     menuItem: { display: "flex", alignItems: "center", padding: "16px", borderBottom: "1px solid var(--color-bg-primary)", cursor: "pointer", justifyContent: "space-between", background: "none", width: "100%", textAlign: "left", border: "none" },
     iconWrapper: (color) => ({ width: "36px", height: "36px", borderRadius: "10px", backgroundColor: color, display: "flex", alignItems: "center", justifyContent: "center", color: "white", marginRight: "12px" }),
     itemLabel: { fontSize: "17px", fontWeight: "600", color: "var(--color-text-primary)" },
     switch: (isOn) => ({ width: "51px", height: "31px", backgroundColor: isOn ? "--color-success" : "#E9E9EA", borderRadius: "16px", position: "relative" }), // Using color variables or defaults
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-    modal: { backgroundColor: 'white', borderRadius: '24px', padding: '24px', width: '90%', maxWidth: '400px' },
+    modal: { backgroundColor: 'white', borderRadius: 'var(--card-radius-lg)', padding: 'var(--content-padding-y)', width: '90%', maxWidth: '400px', boxShadow: 'var(--card-shadow)' },
     primaryBtn: { width: '100%', padding: '16px', backgroundColor: 'var(--color-primary)', color: 'white', borderRadius: '14px', fontSize: '18px', fontWeight: 'bold' }
   };
 
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="last-scroll-block">
       <div style={styles.header}>
         <button onClick={() => navigate(-1)} style={styles.backBtn}><ChevronLeft size={24} /></button>
         <h1 style={styles.pageTitle}>Impostazioni</h1>
       </div>
 
       <div style={styles.profileSection}>
-        <div style={styles.avatar}>{user.photo ? <img src={user.photo} style={{width:'100%', height:'100%', borderRadius:'50%'}}/> : <User size={30} />}</div>
+        <input type="file" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} hidden />
+        <button type="button" style={styles.avatarWrap} onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto} aria-label="Cambia foto profilo">
+          <div style={styles.avatar}>
+            {user.photo ? <img src={user.photo} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="Profilo" /> : <User size={30} />}
+          </div>
+          <span style={styles.avatarOverlay}>
+            <Camera size={14} />
+            {uploadingPhoto ? "..." : "Cambia"}
+          </span>
+        </button>
         <div>
           <h2 style={{ fontSize: "18px", margin: 0, fontWeight: '700', color: 'var(--color-primary-dark)' }}>{user.name} {user.surname}</h2>
           <p style={{ color: "var(--color-primary)", margin: 0, fontSize: "14px", fontWeight: '500' }}>Account Caregiver</p>
@@ -156,12 +202,12 @@ const SettingsPage = () => {
           <div style={{...styles.switch(notifications), backgroundColor: notifications ? 'var(--color-success)' : '#ddd'}}><div style={{width: 27, height: 27, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: notifications ? 22 : 2, transition: '0.3s'}}/></div>
         </button>
 
-        <button style={{ ...styles.menuItem, borderBottom: "none" }} onClick={() => setLargeText(!largeText)}>
+        <button style={{ ...styles.menuItem, borderBottom: "none" }} onClick={() => setIsLargeFont(!isLargeFont)}>
           <div style={{ display: "flex", alignItems: "center" }}>
             <div style={styles.iconWrapper("var(--color-primary-dark)")}><Type size={18} /></div>
             <span style={styles.itemLabel}>Caratteri Grandi</span>
           </div>
-          <div style={{...styles.switch(largeText), backgroundColor: largeText ? 'var(--color-success)' : '#ddd'}}><div style={{width: 27, height: 27, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: largeText ? 22 : 2, transition: '0.3s'}}/></div>
+          <div style={{...styles.switch(isLargeFont), backgroundColor: isLargeFont ? 'var(--color-success)' : '#ddd'}}><div style={{width: 27, height: 27, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: isLargeFont ? 22 : 2, transition: '0.3s'}}/></div>
         </button>
       </div>
 

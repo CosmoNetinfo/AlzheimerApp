@@ -52,11 +52,12 @@ const LoginPage = () => {
 
                 if (profile) {
                     localStorage.setItem('alzheimer_user', JSON.stringify({
-                        id: profile.id, 
+                        id: profile.id,
                         name: profile.name,
                         surname: profile.surname,
                         photo: profile.photo_url,
-                        role: profile.role
+                        role: profile.role,
+                        email: profile.email ?? data.user?.email ?? null
                     }));
                 }
             }
@@ -99,6 +100,15 @@ const LoginPage = () => {
             boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
             border: '1px solid var(--color-border)'
         },
+        logoText: {
+            fontFamily: "'Playfair Display', serif",
+            fontWeight: 700,
+            letterSpacing: '2px',
+            fontSize: '28px',
+            color: 'var(--color-primary)',
+            marginBottom: '16px',
+            textAlign: 'center',
+        },
         logoImage: { width: '80px', height: '80px', marginBottom: '20px', borderRadius: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
         title: { fontSize: '26px', fontWeight: '800', marginBottom: '8px', color: 'var(--color-primary)' },
         subtitle: { fontSize: '15px', color: '#666', marginBottom: '32px' },
@@ -140,8 +150,9 @@ const LoginPage = () => {
     return (
         <div style={styles.container}>
             <div style={styles.card}>
+                <div style={styles.logoText}>MEMORA</div>
                 <img src="/logo.png" alt="Memora Logo" style={styles.logoImage} />
-                <h1 style={styles.title}>Bentornato</h1>
+                <h1 style={styles.title}>Bentornat*</h1>
                 <p style={styles.subtitle}>Inserisci le tue credenziali per accedere</p>
 
                 {error && <div style={styles.errorBox}><AlertCircle size={18}/> {error}</div>}

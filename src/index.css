@@ -1,100 +1,560 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
+
 :root {
-  /* Memora Premium Aesthetic (Image Sync) */
-  --color-primary: #7C3AED;       /* Vibrant Purple */
-  --color-primary-dark: #4C1D95;  /* Deep Purple */
-  --color-accent: #F59E0B;        /* Amber/Gold */
+  /* Root font size: Caratteri Grandi aumenta html a 21px (16 + ~30%) */
+  --base-font-size: 16px;
+  --base-size: 16px;
+  --safe-padding: 5px;
+
+  /* Memora – Color palette */
+  --color-primary: #92487A;
+  --color-primary-dark: #6d3560;
+  --color-primary-soft: #FFC4C4;
+  --color-accent: #EE6983;
   
-  --color-bg-primary: #F9F9FB;    /* Light Grayish Background */
-  --color-bg-secondary: #ffffff;  /* Pure White for cards */
+  --color-bg-primary: #FFF0F2;
+  --color-bg-secondary: #FFE0E2;
   
-  --color-text-primary: #1F2937;  /* Deep Gray for text */
+  --color-text-primary: #1F2937;
   --color-text-secondary: #6B7280;
   
-  --color-success: #10B981;
-  --color-error: #EF4444;
-  --color-border: #E5E7EB;
-  --theme-vibrant: #7C3AED;
+  --color-success: #92487A;
+  --color-error: #EE6983;
+  --color-border: rgba(146, 72, 122, 0.2);
+  --theme-vibrant: #92487A;
 
 
   /* Spacing & Sizes */
   --tab-bar-height: 84px;
   --header-height: 60px;
   --safe-area-bottom: env(safe-area-inset-bottom, 20px);
+  /* Spazio a sinistra: tutto il contenuto si sposta con la sidebar */
+  --sidebar-width: 80px;
+  --app-max-width: 1920px;
+  /* Spazio bianco tra sidebar e contenuto (layout arioso) */
+  --content-gap: 56px;
+  /* Grafica unificata sezioni */
+  --content-padding-x: 28px;
+  --content-padding-y: 24px;
+  --card-radius: 20px;
+  --card-radius-lg: 24px;
+  --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --header-shadow: 0 1px 0 rgba(146, 72, 122, 0.06);
+  --section-gap: 24px;
+  --chat-input-height: 72px;
+  --font-memoriae: 'Plus Jakarta Sans', sans-serif;
 }
 
 * {
-  box-sizing: border-box;
+  box-sizing: border-box !important;
   -webkit-tap-highlight-color: transparent;
 }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
-  background-color: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  font-size: 18px;
-  /* Slightly larger base font for readability */
-  line-height: 1.5;
-  user-select: none;
-  -webkit-user-select: none;
-  overscroll-behavior-y: none;
-  /* Prevent bounce effect on body */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
-/* Utilities & Layout */
+html {
+  font-size: var(--base-font-size) !important;
+  transition: font-size 0.2s ease-in-out;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Caratteri Grandi: aumenta la radice ~30% così tutti i rem si scalano */
+html.large-font-mode {
+  --base-font-size: 21px;
+  --base-size: 21px;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100vw;
+  height: 100%;
+  min-height: 100dvh;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: 1.125rem; /* 18px con base 16px; con 21px base = ~23.6px */
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: none;
+  overflow-x: hidden;
+}
+
+input,
+button {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+/* Header: gerarchia visiva e profondità leggera (HIG) */
+.app-header {
+  box-shadow: var(--header-shadow);
+}
+.app-header h1 {
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+/* Root: niente scroll orizzontale, larghezza contenuta */
+#root {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  overflow-x: hidden;
+}
+
+#root > * {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Layout Base: contenitore centrato, padding simmetrico */
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
   width: 100%;
-  max-width: 600px; /* Mobile/Table feed width */
+  max-width: 1200px;
+  height: 100%;
+  min-height: 100dvh;
+  min-width: 0;
   margin: 0 auto;
   overflow: hidden;
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-primary);
   position: relative;
-  transition: padding-left 0.3s ease;
+  padding-left: var(--safe-padding) !important;
+  padding-right: var(--safe-padding) !important;
+}
+
+@media (max-width: 767px) {
+  .app-container {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-container {
+    padding-left: var(--safe-padding) !important;
+    padding-right: var(--safe-padding) !important;
+  }
 }
 
 .main-content {
   flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
-  padding-bottom: calc(var(--tab-bar-height) + var(--safe-area-bottom));
   padding-top: var(--header-height);
   -webkit-overflow-scrolling: touch;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 14px;
+  padding-right: 14px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* PC Layout Support */
+/* Compatibilità full-page */
+.app-container.full-page {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Solo Chat: main non scrolla, scroll interno alla pagina */
+.main-content.full-page-fill {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.main-content.full-page-fill > div {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Chat su mobile: area messaggi con altezza fissa, input fixed sopra la Navbar */
+@media screen and (max-width: 768px) {
+  .chat-page {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat-messages {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: calc(100vh - var(--header-height) - var(--chat-input-height) - var(--tab-bar-height) - env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    padding-top: 4px !important;
+    padding-bottom: 12px !important;
+  }
+
+  .chat-input-bar,
+  .chat-input-wrapper {
+    position: fixed !important;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 28px);
+    max-width: 952px;
+    bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+    z-index: 40;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    box-sizing: border-box;
+  }
+}
+
+/* Chat Box Fix: container messaggi centrato, spazio per input fixed */
+.chat-messages-container {
+  flex: 1;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  overflow-y: auto;
+  padding-top: 4px;
+  padding-bottom: 80px;
+}
+
+/* Struttura chat: wrapper, header opzionale, area messaggi, input ancorato in fondo */
+.chat-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.chat-page-wrapper .chat-header {
+  flex-shrink: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chat-page-wrapper .chat-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.chat-page-wrapper .messages-scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.75rem;
+}
+
+.message-bubble {
+  max-width: 75% !important;
+  min-width: 4.5rem !important;
+  padding: 0.25rem 0.625rem !important;
+  border-radius: 0.75rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.3 !important;
+  box-sizing: border-box;
+}
+
+.message-bubble.sent {
+  align-self: flex-end;
+  padding: 0.4375rem 0.625rem !important;
+}
+
+.message-bubble.received {
+  align-self: flex-start;
+}
+
+
+.chat-input-container {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chat-input-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.chat-input-inner input {
+  flex: 1;
+  min-width: 0;
+}
+
+.send-btn {
+  flex-shrink: 0;
+}
+
+/* Input chat: isola bianca fissa, arrotondata e staccata dai bordi */
+.input-outer-wrapper {
+  position: fixed !important;
+  bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important;
+  left: 0 !important;
+  right: 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  padding: 0 var(--safe-padding) !important;
+  background: transparent !important;
+  z-index: 9999 !important;
+}
+
+.custom-chat-input {
+  width: 100% !important;
+  max-width: 1000px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px;
+  background-color: white !important;
+  border-radius: 50px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  padding: 0.5rem 1rem !important;
+  border: 1px solid rgba(146, 72, 122, 0.08);
+  pointer-events: auto !important;
+}
+
+.custom-chat-input .inner-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--color-text-primary);
+}
+
+.custom-chat-input .inner-input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.send-button-circle {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(146, 72, 122, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.send-button-circle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(146, 72, 122, 0.35);
+}
+
+.send-button-circle:active {
+  transform: scale(0.98);
+}
+
+/* PC Layout: margine generoso tra sidebar e contenuto, layout arioso */
 @media screen and (min-width: 601px) {
   body {
-    background-color: #f0f0f2;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    padding-left: 80px; /* Offset for Sidebar */
+    background-color: var(--color-bg-primary);
   }
-  
+
+  /* Contenitore principale: margin-left = sidebar; larghezza = resto viewport (bilanciato) */
   .app-container {
-    box-shadow: 0 0 50px rgba(0,0,0,0.1);
-    height: 95vh; /* Floating style on PC */
-    border-radius: 20px;
+    margin-left: var(--sidebar-width);
+    width: calc(100vw - var(--sidebar-width));
+    max-width: min(calc(var(--app-max-width) - var(--sidebar-width)), calc(100vw - var(--sidebar-width)));
   }
-  
+
+  /* Header: inizia dopo la sidebar; padding = content-gap così saluto/titolo non tagliati e allineati alle card */
+  .app-header {
+    left: var(--sidebar-width) !important;
+    width: calc(100vw - var(--sidebar-width)) !important;
+    right: auto !important;
+    padding-left: var(--content-gap) !important;
+    padding-right: var(--content-gap) !important;
+  }
+
+  /* Pulsanti header allineati al bordo del contenuto (stesso content-gap) */
+  .app-header-profile {
+    left: var(--content-gap) !important;
+  }
+
+  .app-header-settings {
+    right: var(--content-gap) !important;
+  }
+
+  /* Main: centrato, max-width 1200px; padding 14px fino a 1023px (mobile/tablet) */
   .main-content {
-    /* On PC, let's reduce bottom padding as bottom bar is gone */
+    padding-left: 14px;
+    padding-right: 14px;
     padding-bottom: 40px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
   }
 }
 
-@media screen and (max-width: 600px) {
-  .app-container {
+/* Desktop: padding 5px, contenuto può espandersi, chat e input allineati */
+@media (min-width: 1024px) {
+  .main-container,
+  .app-layout,
+  .chat-page-wrapper,
+  .messages-container {
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+    max-width: 100% !important;
+  }
+
+  .input-outer-wrapper {
+    padding: 0 5px !important;
+    width: calc(100% - 10px) !important;
+  }
+
+  .app-container .main-content {
+    width: 100%;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+    align-self: center;
+    box-sizing: border-box;
+  }
+
+  .chat-page,
+  .chat-page-wrapper {
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+  }
+
+  .chat-page {
+    width: 100%;
     max-width: 100%;
-    box-shadow: none;
-    height: 100dvh;
-    border-radius: 0;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
+  .chat-inner {
+    width: 100%;
+    max-width: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+
+  .chat-messages {
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+  }
+
+  .chat-input-bar {
+    flex-shrink: 0;
+    margin-top: auto;
+    width: 100%;
+    max-width: 100%;
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+    box-sizing: border-box;
   }
 }
+
+@media screen and (min-width: 769px) {
+  .last-scroll-block {
+    padding-bottom: 0 !important;
+  }
+}
+
+/* Mobile (≤768px): contenuto a tutto schermo, padding solo sull'ultimo blocco */
+@media screen and (max-width: 768px) {
+  main,
+  .main-content,
+  .app-container,
+  #root > div {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-y: auto;
+    background-color: var(--color-bg-primary);
+  }
+
+  .main-content {
+    padding-bottom: 0;
+    padding-left: 14px;
+    padding-right: 14px;
+    box-sizing: border-box;
+  }
+
+  /* Padding solo sull'ultimo elemento: niente scalino, scroll fino a superare la navbar */
+  .last-scroll-block {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Navbar trasparente con blur (stile iOS) */
+  .bottom-navbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
 
 
 
@@ -108,16 +568,200 @@ h3 {
 button {
   cursor: pointer;
   border: none;
-  font-family: inherit;
 }
 
-/* Accessibility */
-.large-text-mode {
-  font-size: 24px !important;
+/* Titolo Memoriae: stesso font dell'app, peso 700 per farlo risaltare */
+.memoriae-title {
+  font-family: var(--font-memoriae);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0 0 0.75rem 0;
+  letter-spacing: 0.02em;
 }
 
-.large-text-mode button,
-.large-text-mode input,
-.large-text-mode .tab-label {
-  font-size: 1.2em !important;
+/* Contenuti sezioni: rispettano larghezza contenitore, niente overflow orizzontale */
+.page-content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
+
+/* Card grafica unificata (opzionale: usare className "section-card") */
+.section-card {
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  border: 1px solid rgba(146, 72, 122, 0.06);
+}
+
+/* Agenda / riga attività: icona "+" in rem (scala con Caratteri Grandi) */
+.agenda-item-row {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  padding: 10px 18px !important;
+}
+
+.agenda-item-row .plus-icon-container,
+.plus-icon-container {
+  width: 2rem !important;
+  height: 2rem !important;
+  flex-shrink: 0 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.agenda-item-row .plus-icon-container svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.agenda-item-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.agenda-text-container {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  min-height: 2rem !important;
+}
+
+/* Stato del Paziente: icone umore in primo piano e sempre cliccabili */
+.mood-tracker-buttons {
+  position: relative;
+  z-index: 100 !important;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  margin-bottom: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  pointer-events: auto !important;
+}
+
+.mood-tracker-buttons .mood-btn {
+  pointer-events: auto !important;
+}
+
+/* Emoji interaction: garantisce click e feedback visivo */
+.mood-button,
+.mood-btn {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  transition: all 0.3s ease;
+}
+
+.mood-btn {
+  cursor: pointer;
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 100 !important;
+  width: 3.5rem;
+  height: 3.5rem;
+  min-width: 3.5rem;
+  min-height: 3.5rem;
+  padding: 0;
+  font: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: none;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mood-btn:hover:not(:disabled) {
+  background-color: rgba(203, 213, 225, 0.2);
+}
+
+/* Focus: ring palette invece del blu del browser */
+.mood-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.mood-btn.active {
+  transform: scale(1.1);
+  transition: all 0.2s ease;
+}
+
+/* Stato attivo: sx=verde, centro=giallo, dx=rosso */
+.mood-btn.active[data-mood="happy"] {
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
+}
+
+.mood-btn.active[data-mood="neutral"] {
+  box-shadow: 0 0 15px rgba(234, 179, 8, 0.3);
+}
+
+.mood-btn.active[data-mood="sad"] {
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+}
+
+/* Focus su bottone attivo: non sovrascrivere l'ombra colore */
+.mood-btn.active:focus-visible {
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.3), 0 0 0 2px var(--color-primary);
+}
+
+.mood-btn.active[data-mood="neutral"]:focus-visible {
+  box-shadow: 0 0 15px rgba(234, 179, 8, 0.3), 0 0 0 2px var(--color-primary);
+}
+
+.mood-btn.active[data-mood="sad"]:focus-visible {
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3), 0 0 0 2px var(--color-primary);
+}
+
+.mood-btn:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Pillola di Benessere: responsive su mobile, testo a capo e font leggermente ridotto */
+@media screen and (max-width: 768px) {
+  /* Su mobile le bolle chat occupano più spazio */
+  .message-bubble {
+    max-width: 85% !important;
+  }
+
+  .input-outer-wrapper {
+    padding: 0 14px !important;
+  }
+
+  /* Griglia Memoriae a 2 colonne su mobile */
+  .memoriae-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .quote-card-responsive {
+    min-width: 0;
+  }
+  .quote-text-responsive {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    min-width: 0;
+    color: var(--color-primary) !important;
+  }
+}
+
+/* Caratteri Grandi: tutto scala via html font-size (rem); nessuna regola aggiuntiva necessaria */

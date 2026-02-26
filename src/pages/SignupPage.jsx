@@ -47,7 +47,14 @@ const SignupPage = () => {
 
         } catch (err) {
             console.error("Errore registrazione:", err);
-            setError(err.message || "Errore durante la registrazione.");
+            const msg = err?.message || "";
+            if (msg === "Failed to fetch" || msg.includes("fetch")) {
+                setError(
+                    "Impossibile contattare il server. Controlla: 1) file .env con VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY corretti (da Supabase Dashboard > Settings > API); 2) Supabase > Authentication > URL Configuration: aggiungi questa pagina in Redirect URLs (es. http://localhost:5173); 3) connessione internet."
+                );
+            } else {
+                setError(err.message || "Errore durante la registrazione.");
+            }
         } finally {
             setLoading(false);
         }
@@ -72,6 +79,15 @@ const SignupPage = () => {
             maxWidth: '400px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
             border: '1px solid var(--color-border)'
+        },
+        logoText: {
+            fontFamily: "'Playfair Display', serif",
+            fontWeight: 700,
+            letterSpacing: '2px',
+            fontSize: '28px',
+            color: 'var(--color-primary)',
+            marginBottom: '16px',
+            textAlign: 'center',
         },
         title: { fontSize: '24px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '8px' },
         subtitle: { fontSize: '14px', color: '#666', marginBottom: '24px' },
@@ -107,7 +123,8 @@ const SignupPage = () => {
     return (
         <div style={styles.container}>
             <div style={styles.card}>
-                <img src="/logo.png" alt="Logo" style={{width: 60, height: 60, borderRadius: 12, marginBottom: 15}}/>
+                <div style={styles.logoText}>MEMORA</div>
+                <img src="/logo.png" alt="Memora Logo" style={{width: 60, height: 60, borderRadius: 12, marginBottom: 15}}/>
                 <h1 style={styles.title}>Crea Account</h1>
                 <p style={styles.subtitle}>Unisciti alla nostra community</p>
 

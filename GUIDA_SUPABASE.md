@@ -2,6 +2,20 @@
 
 Ho già installato tutto il necessario nel progetto. Ora tocca a te creare il database!
 
+---
+
+## ⚠️ Se vedi "Failed to fetch" in Registrazione/Login
+
+1. **File `.env`** (nella root del progetto, non `.env.local`): deve contenere **valori veri** copiati da Supabase, non placeholder:
+   - `VITE_SUPABASE_URL` = l’URL del progetto (es. `https://abcdefgh.supabase.co`)
+   - `VITE_SUPABASE_ANON_KEY` = la chiave **anon public** (lunga, inizia con `eyJ...`)
+2. **Supabase Dashboard → Authentication → URL Configuration**:
+   - **Site URL**: per sviluppo metti `http://localhost:5173` (o l’URL da cui apri l’app)
+   - **Redirect URLs**: aggiungi `http://localhost:5173`, `http://localhost:5173/**` e, in produzione, il tuo dominio (es. `https://alzheimer-app.vercel.app/**`)
+3. Riavvia il server dopo aver modificato `.env`: `npm run dev`
+
+---
+
 ## Passo 1: Crea il Progetto
 1. Vai su **[database.new](https://database.new)** (si apre Supabase).
 2. Fai login con **GitHub** (stesso account che usi per il codice).
@@ -21,42 +35,52 @@ Una volta pronto il progetto:
    - **anon public** (sotto "Project API keys") → Chiave lunga che inizia con `eyJ...`
 
 ## Passo 3: Inserisci le Chiavi nel Progetto
-1. Nel tuo progetto, apri il file **`.env.local`** (se non esiste, crealo nella cartella principale).
-2. Incolla così:
+1. Nella **root del progetto** crea il file **`.env`** (se non esiste).
+2. Incolla le **chiavi vere** (copia-incolla da Supabase, niente placeholder):
 ```
-VITE_SUPABASE_URL=https://xxxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGc...la_tua_chiave_qui
+VITE_SUPABASE_URL=https://TUO_PROJECT_ID.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGc... (tutta la chiave "anon public")
 ```
+3. Riavvia il server dopo aver salvato: `npm run dev`.
 
 ## Passo 4: Crea le Tabelle
-1. In Supabase, vai su **"Table Editor"** (icona tabella nella sidebar).
-2. Clicca **"Create a new table"** e crea:
+1. In Supabase vai su **SQL Editor**.
+2. Apri il file **`sql_updates/setup_tables_complete.sql`** del progetto, copia tutto il contenuto, incollalo nell’editor e clicca **Run**.
 
-### Tabella `messages`
-- Nome: `messages`
-- Spunta "Enable Row Level Security (RLS)"
-- Colonne:
-  - `id` (bigint, primary, auto-increment) ← già presente
-  - `created_at` (timestamp) ← già presente
-  - `text` (text)
-  - `sender_name` (text)
-  - `sender_id` (text)
+Lo script crea (o aggiorna) le tre tabelle usate dall’app:
+- **messages** – chat (id, created_at, text, sender_name, sender_id)
+- **posts** – feed MemoraBook (id, created_at, author, **author_id**, **author_photo**, text, **image**, likes)
+- **comments** – commenti sotto i post (id, post_id, created_at, author_name, author_id, author_photo, text, likes)
 
-### Tabella `posts`
-- Nome: `posts`
-- Spunta "Enable Row Level Security (RLS)"
-- Colonne:
-  - `id` (bigint, primary, auto-increment) ← già presente
-  - `created_at` (timestamp) ← già presente
-  - `author` (text)
-  - `text` (text)
-  - `likes` (int4, default: 0)
+Se hai già creato `messages` e `posts` a mano, lo script aggiunge le colonne mancanti a `posts` (author_id, author_photo, image) e crea la tabella `comments`.
 
-## Passo 5: Riavvia il Server
+## Passo 5: Abilita Auth e trigger profilo (per Registrazione/Login)
+1. In Supabase vai su **SQL Editor**.
+2. Esegui lo script **`sql_updates/ENABLE_AUTH.sql`** (copia il contenuto e incollalo nell’editor, poi Run). Così alla registrazione viene creato automaticamente il profilo in `profiles`.
+
+## Passo 6: Configura gli URL per l’Auth
+1. In Supabase vai su **Authentication** → **URL Configuration**.
+2. **Site URL**: imposta `http://localhost:5173` (per sviluppo) o il tuo dominio in produzione.
+3. **Redirect URLs**: aggiungi almeno:
+   - `http://localhost:5173`
+   - `http://localhost:5173/**`
+   (In produzione aggiungi anche il dominio Vercel, es. `https://alzheimer-app.vercel.app/**`.)
+
+## Passo 7: Riavvia il server
 ```bash
-# Ferma il server (CTRL+C nel terminale)
-# Poi riavvialo
 npm run dev
 ```
 
-✅ **Fatto!** Ora dimmi quando hai finito e ti mostro la chat funzionante!
+---
+
+## Checklist rapida
+| Step | Azione |
+|------|--------|
+| 1 | Crea progetto Supabase (database.new) |
+| 2 | Copia URL e anon key in `.env` |
+| 3 | SQL Editor: esegui `setup_tables_complete.sql` |
+| 4 | SQL Editor: esegui `ENABLE_AUTH.sql` |
+| 5 | Authentication → URL Configuration (Site URL + Redirect URLs) |
+| 6 | `npm run dev` e prova Registrazione / Login |
+
+✅ **Fatto!** Se la registrazione dà ancora "Failed to fetch", controlla la sezione in cima (URL Configuration e .env).

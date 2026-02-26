@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-    User, 
     Settings, 
     LogOut, 
     Mail, 
@@ -9,32 +8,51 @@ import {
     Smile,
     Meh,
     Frown,
-    Heart
+    Camera
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { getMoodColor, addMoodEntry } from '../utils/moodHistory';
 
 const ProfilePage = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('alzheimer_user') || '{}'));
     const [currentMood, setCurrentMood] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
+    const fileInputRef = useRef(null);
 
     const isPatient = user.role === 'patient';
 
     useEffect(() => {
         const fetchUserData = async () => {
             try {
+                let emailFromAuth = user.email || null;
+                if (!emailFromAuth) {
+                    const { data: authData } = await supabase.auth.getUser();
+                    emailFromAuth = authData?.user?.email ?? null;
+                    if (emailFromAuth) {
+                        const updated = { ...user, email: emailFromAuth };
+                        setUser(updated);
+                        localStorage.setItem('alzheimer_user', JSON.stringify(updated));
+                    }
+                }
+
                 const profileId = user.id || (user.name + (user.surname || ''));
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('current_mood, role, bio, location')
+                    .select('current_mood, role, bio, location, email, photo_url')
                     .eq('id', profileId)
                     .single();
 
                 if (!error && data) {
                     setCurrentMood(data.current_mood);
-                    setUser(prev => ({ ...prev, ...data }));
+                    setUser(prev => ({
+                        ...prev,
+                        ...data,
+                        email: data.email ?? prev.email ?? emailFromAuth,
+                        photo: data.photo_url ?? prev.photo
+                    }));
                 }
             } catch (e) {
                 console.error("Error fetching user data", e);
@@ -52,9 +70,42 @@ const ProfilePage = () => {
         }
     };
 
+    const handlePhotoChange = async (e) => {
+        const file = e.target?.files?.[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const profileId = user.id || (user.name + (user.surname || ''));
+        if (!profileId) return;
+        setUploadingPhoto(true);
+        try {
+            const bucket = 'avatars';
+            const path = `${profileId}/avatar`;
+            const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+            if (uploadError) throw uploadError;
+            const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
+            const photoUrl = urlData?.publicUrl || null;
+            await supabase.from('profiles').upsert([{
+                id: profileId,
+                name: user.name,
+                surname: user.surname,
+                role: user.role,
+                photo_url: photoUrl
+            }]);
+            const updated = { ...user, photo: photoUrl };
+            setUser(updated);
+            localStorage.setItem('alzheimer_user', JSON.stringify(updated));
+        } catch (err) {
+            console.error('Errore upload foto:', err);
+            alert('Impossibile caricare la foto. Verifica che il bucket "avatars" esista in Supabase con accesso pubblico.');
+        } finally {
+            setUploadingPhoto(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     const handleMoodSelect = async (mood) => {
         if (!isPatient) return;
         setCurrentMood(mood);
+        addMoodEntry(mood);
         try {
             const profileId = user.id || (user.name + (user.surname || ''));
             await supabase.from('profiles').upsert([{ 
@@ -70,20 +121,12 @@ const ProfilePage = () => {
     };
 
     const getMoodIcon = (mood) => {
+        const color = getMoodColor(mood);
         switch (mood) {
-            case 'happy': return <Smile size={20} color="#10B981" />;
-            case 'neutral': return <Meh size={20} color="#F59E0B" />;
-            case 'sad': return <Frown size={20} color="#EF4444" />;
+            case 'happy': return <Smile size={20} color={color} />;
+            case 'neutral': return <Meh size={20} color={color} />;
+            case 'sad': return <Frown size={20} color={color} />;
             default: return null;
-        }
-    };
-
-    const getMoodColor = (mood) => {
-        switch (mood) {
-            case 'happy': return '#10B981'; // Green
-            case 'neutral': return '#F59E0B'; // Yellow/Amber
-            case 'sad': return '#EF4444'; // Red
-            default: return '#E5E7EB'; // Gray default
         }
     };
 
@@ -107,24 +150,55 @@ const ProfilePage = () => {
 
     const styles = {
         container: {
-            padding: '24px',
-            backgroundColor: '#F9F9FB',
-            minHeight: '100dvh',
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            padding: '16px var(--content-padding-x)',
+            backgroundColor: 'var(--color-bg-primary)',
+            minHeight: '100%',
+            boxSizing: 'border-box',
+            overflowX: 'hidden',
         },
         headerCard: {
             backgroundColor: 'white',
-            borderRadius: '24px',
-            padding: '24px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+            borderRadius: 'var(--card-radius-lg)',
+            padding: 'var(--content-padding-y)',
+            boxShadow: 'var(--card-shadow)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             textAlign: 'center',
-            marginBottom: '20px',
+            marginBottom: 'var(--section-gap)',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
         },
         avatarContainer: {
             position: 'relative',
             marginBottom: '16px',
+        },
+        avatarWrap: {
+            position: 'relative',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            display: 'block',
+        },
+        avatarOverlay: {
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: 'rgba(0,0,0,0.5)',
+            color: 'white',
+            fontSize: '11px',
+            padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            borderBottomLeftRadius: '50%',
+            borderBottomRightRadius: '50%',
         },
         avatar: {
             width: '100px',
@@ -163,13 +237,15 @@ const ProfilePage = () => {
             alignItems: 'center',
             gap: '8px',
             justifyContent: 'center',
+            flexWrap: 'wrap',
+            wordBreak: 'break-word',
         },
         moodEmoji: {
             fontSize: '28px',
             lineHeight: 1,
         },
         roleBadge: {
-            backgroundColor: 'rgba(124, 58, 237, 0.1)',
+            backgroundColor: 'var(--color-accent)',
             color: 'var(--color-primary)',
             padding: '4px 12px',
             borderRadius: '20px',
@@ -186,21 +262,26 @@ const ProfilePage = () => {
         moodBtn: (mood) => ({
             width: '48px',
             height: '48px',
-            borderRadius: '14px',
-            backgroundColor: currentMood === mood ? 'rgba(124, 58, 237, 0.1)' : '#F3F4F6',
-            border: currentMood === mood ? '2px solid #7C3AED' : '2px solid transparent',
+            borderRadius: 'var(--card-radius)',
+            backgroundColor: currentMood === mood ? 'var(--color-accent)' : '#F3F4F6',
+            border: currentMood === mood ? `2px solid ${getMoodColor(mood)}` : '2px solid transparent',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
+            transform: currentMood === mood ? 'scale(1.25)' : 'scale(1)',
+            padding: 0,
+            font: 'inherit',
         }),
         infoCard: {
             backgroundColor: 'white',
-            borderRadius: '24px',
-            padding: '20px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-            marginBottom: '20px',
+            borderRadius: 'var(--card-radius-lg)',
+            padding: 'var(--content-padding-y)',
+            boxShadow: 'var(--card-shadow)',
+            marginBottom: 'var(--section-gap)',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
         },
         infoRow: {
             display: 'flex',
@@ -213,24 +294,26 @@ const ProfilePage = () => {
         },
         actionCard: {
             backgroundColor: 'white',
-            borderRadius: '24px',
-            padding: '12px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-            marginBottom: '20px',
+            borderRadius: 'var(--card-radius)',
+            padding: '12px 16px',
+            boxShadow: 'var(--card-shadow)',
+            marginBottom: 'var(--section-gap)',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
         },
         actionBtn: {
             width: '100%',
-            padding: '16px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '8px',
             background: 'none',
             border: 'none',
             color: '#1F2937',
-            fontSize: '16px',
+            fontSize: '14px',
             fontWeight: '600',
             cursor: 'pointer',
-            borderRadius: '16px',
+            borderRadius: '12px',
             transition: 'background-color 0.2s',
         },
         logoutBtn: {
@@ -254,13 +337,20 @@ const ProfilePage = () => {
     if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Caricamento...</div>;
 
     return (
-        <div style={styles.container}>
+        <div style={styles.container} className="last-scroll-block">
             {/* Minimal Header Card */}
             <div style={styles.headerCard}>
                 <div style={styles.avatarContainer}>
-                    <div style={styles.avatar}>
-                        {user.photo ? <img src={user.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Profile" /> : user.name?.[0]}
-                    </div>
+                    <input type="file" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} hidden />
+                    <button type="button" style={styles.avatarWrap} onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto} aria-label="Cambia foto profilo">
+                        <div style={styles.avatar}>
+                            {user.photo ? <img src={user.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Profile" /> : user.name?.[0]}
+                        </div>
+                        <span style={styles.avatarOverlay}>
+                            <Camera size={24} color="white" />
+                            {uploadingPhoto ? '...' : 'Cambia'}
+                        </span>
+                    </button>
                 </div>
                 <h1 style={styles.name}>
                     {user.name} {user.surname}
@@ -270,15 +360,15 @@ const ProfilePage = () => {
 
                 {isPatient && (
                     <div style={styles.moodIconContainer}>
-                        <div style={styles.moodBtn('happy')} onClick={() => handleMoodSelect('happy')}>
-                            <Smile size={24} color={currentMood === 'happy' ? "#7C3AED" : "#10B981"} />
-                        </div>
-                        <div style={styles.moodBtn('neutral')} onClick={() => handleMoodSelect('neutral')}>
-                            <Meh size={24} color={currentMood === 'neutral' ? "#7C3AED" : "#F59E0B"} />
-                        </div>
-                        <div style={styles.moodBtn('sad')} onClick={() => handleMoodSelect('sad')}>
-                            <Frown size={24} color={currentMood === 'sad' ? "#7C3AED" : "#EF4444"} />
-                        </div>
+                        <button type="button" style={styles.moodBtn('happy')} onClick={() => handleMoodSelect('happy')} aria-label="Felice">
+                            <Smile size={24} color={currentMood === 'happy' ? getMoodColor('happy') : '#9CA3AF'} />
+                        </button>
+                        <button type="button" style={styles.moodBtn('neutral')} onClick={() => handleMoodSelect('neutral')} aria-label="Neutro">
+                            <Meh size={24} color={currentMood === 'neutral' ? getMoodColor('neutral') : '#9CA3AF'} />
+                        </button>
+                        <button type="button" style={styles.moodBtn('sad')} onClick={() => handleMoodSelect('sad')} aria-label="Triste">
+                            <Frown size={24} color={currentMood === 'sad' ? getMoodColor('sad') : '#9CA3AF'} />
+                        </button>
                     </div>
                 )}
 
@@ -304,12 +394,8 @@ const ProfilePage = () => {
             {/* Quick Actions Card */}
             <div style={styles.actionCard}>
                 <button style={styles.actionBtn} onClick={() => navigate('/impostazioni')}>
-                    <Settings size={20} color="#6B7280" />
+                    <Settings size={18} color="#6B7280" />
                     <span>Impostazioni App</span>
-                </button>
-                <button style={{ ...styles.actionBtn, borderTop: '1px solid #F3F4F6' }} onClick={() => navigate('/feed')}>
-                    <Heart size={20} color="#6B7280" />
-                    <span>I miei Post</span>
                 </button>
             </div>
 
@@ -320,7 +406,7 @@ const ProfilePage = () => {
             </button>
 
             <div style={{ textAlign: 'center', marginTop: '30px', color: '#9CA3AF', fontSize: '12px' }}>
-                Memora v2.0 • Made with ❤️ for CosmoNet
+                Memora v1.0
             </div>
         </div>
     );

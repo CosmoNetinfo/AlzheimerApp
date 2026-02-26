@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Memora: cervello metà organico / metà circuiti – palette #92487A, #6d3560, #FFC4C4, #EE6983 -->
+  <defs>
+    <linearGradient id="brainBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#92487A"/>
+      <stop offset="100%" stop-color="#EE6983"/>
+    </linearGradient>
+  </defs>
+  <!-- Sfondo tondo (per icona app) -->
+  <rect width="512" height="512" rx="96" fill="url(#brainBg)"/>
+  <!-- Metà sinistra: cervello organico (convoluzioni) – fill rosa chiaro, contorno primary -->
+  <path d="M256 120c-70 0-128 58-128 128 0 24 7 46 19 65-8-14-13-30-13-47 0-44 36-80 80-80s80 36 80 80c0 17-5 33-13 47 12-19 19-41 19-65 0-70-58-128-128-128z" fill="#FFC4C4" stroke="#92487A" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M180 200c0-20 16-36 36-36s36 16 36 36-16 36-36 36-36-16-36-36z" fill="#FFF0F2" stroke="#92487A" stroke-width="4"/>
+  <path d="M256 160c-12 0-22 10-22 22s10 22 22 22 22-10 22-22-10-22-22-22z" fill="#FFF0F2" stroke="#6d3560" stroke-width="3"/>
+  <path d="M320 200c0-20 16-36 36-36s36 16 36 36-16 36-36 36-36-16-36-36z" fill="#FFF0F2" stroke="#92487A" stroke-width="4"/>
+  <!-- Metà destra: circuiti / rete – linee e nodi in primary-dark -->
+  <g stroke="#6d3560" stroke-width="6" stroke-linecap="round">
+    <path d="M280 140h80v40h-80z"/>
+    <path d="M300 180v60M340 180v60M320 220h40"/>
+    <circle cx="300" cy="210" r="8" fill="#6d3560"/>
+    <circle cx="340" cy="210" r="8" fill="#6d3560"/>
+    <circle cx="320" cy="240" r="8" fill="#6d3560"/>
+    <path d="M280 260h80v50M320 260v50"/>
+    <circle cx="300" cy="285" r="8" fill="#6d3560"/>
+    <circle cx="340" cy="285" r="8" fill="#6d3560"/>
+    <path d="M320 310h60v40M380 330h40"/>
+    <circle cx="350" cy="340" r="8" fill="#6d3560"/>
+    <circle cx="400" cy="340" r="8" fill="#6d3560"/>
+    <path d="M260 200h20v80h-20z"/>
+    <path d="M400 200h20v140h-20z"/>
+  </g>
+  <!-- Centro: fusione – piccolo dettaglio accent -->
+  <circle cx="256" cy="256" r="16" fill="#EE6983" opacity="0.9"/>
+</svg>
