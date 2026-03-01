@@ -34,7 +34,7 @@ Uno spazio sicuro per condividere momenti e pensieri con la comunità.
 ## 🛠️ Tecnologie Utilizzate
 - **Frontend**: React + Vite
 - **Icone**: Lucide-React
-- **Database & Real-time**: Supabase
+- **Database & Real-time**: Supabase (Database + Auth + Storage per immagini)
 - **PWA**: Web App Manifest & Apple Touch Support
 
 ## 📦 Installazione Locale
@@ -52,6 +52,9 @@ npm install
 # Avvia l'app in modalità sviluppo
 npm run dev
 ```
+
+### 🗄️ Configurazione Database
+Per configurare correttamente Supabase (Database, Auth e Storage per le foto profilo), segui la **[Guida Supabase](GUIDA_SUPABASE.md)**.
 
 ---
 *Sviluppato con dedizione da **Daniele Spalletti** ([cosmonet.info](https://www.cosmonet.info)) per migliorare la qualità della vita quotidiana attraverso la tecnologia.*

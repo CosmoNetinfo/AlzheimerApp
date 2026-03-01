@@ -66,10 +66,12 @@ Se hai già creato `messages` e `posts` a mano, lo script aggiunge le colonne ma
    - `http://localhost:5173/**`
    (In produzione aggiungi anche il dominio Vercel, es. `https://alzheimer-app.vercel.app/**`.)
 
-## Passo 7: Riavvia il server
-```bash
-npm run dev
-```
+### Passo 8: Configura lo Storage (Foto Profilo)
+Per permettere il caricamento della foto profilo, devi creare un bucket pubblico:
+
+1. In Supabase vai su **SQL Editor**.
+2. Esegui lo script **`sql_updates/storage_setup.sql`** (copia il contenuto, incollalo nell’editor e clicca **Run**).
+3. Questo creerà il bucket `avatars` e imposterà i permessi pubblici per la lettura e l'upload.
 
 ---
 
@@ -80,7 +82,8 @@ npm run dev
 | 2 | Copia URL e anon key in `.env` |
 | 3 | SQL Editor: esegui `setup_tables_complete.sql` |
 | 4 | SQL Editor: esegui `ENABLE_AUTH.sql` |
-| 5 | Authentication → URL Configuration (Site URL + Redirect URLs) |
-| 6 | `npm run dev` e prova Registrazione / Login |
+| 5 | SQL Editor: esegui `storage_setup.sql` (Storage Foto) |
+| 6 | Authentication → URL Configuration (Site URL + Redirect URLs) |
+| 7 | `npm run dev` e prova Registrazione / Login |
 
 ✅ **Fatto!** Se la registrazione dà ancora "Failed to fetch", controlla la sezione in cima (URL Configuration e .env).
