@@ -4,6 +4,7 @@ import AppIcon from '../components/AppIcon';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 import { getMoodColor, addMoodEntry } from '../utils/moodHistory';
+import { getCurrentPosition, getAddressFromCoords } from '../utils/locationService';
 
 const ProfilePage = () => {
     const navigate = useNavigate();
@@ -11,6 +12,7 @@ const ProfilePage = () => {
     const [currentMood, setCurrentMood] = useState(null);
     const [loading, setLoading] = useState(true);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
+    const [updatingLocation, setUpdatingLocation] = useState(false);
     const fileInputRef = useRef(null);
 
     const isPatient = user.role === 'patient';
@@ -109,6 +111,35 @@ const ProfilePage = () => {
             }]);
         } catch (e) {
             console.error("Error saving mood", e);
+        }
+    };
+
+    const handleUpdateLocation = async () => {
+        setUpdatingLocation(true);
+        try {
+            const { latitude, longitude } = await getCurrentPosition();
+            const address = await getAddressFromCoords(latitude, longitude);
+            
+            const profileId = user.id || (user.name + (user.surname || ''));
+            const { error } = await supabase.from('profiles').upsert([{ 
+                id: profileId, 
+                location: address,
+                name: user.name,
+                surname: user.surname,
+                role: user.role
+            }]);
+
+            if (error) throw error;
+
+            setUser(prev => ({ ...prev, location: address }));
+            const storedUser = JSON.parse(localStorage.getItem('alzheimer_user') || '{}');
+            localStorage.setItem('alzheimer_user', JSON.stringify({ ...storedUser, location: address }));
+            alert('Posizione aggiornata con successo!');
+        } catch (err) {
+            console.error('Errore durante l\'aggiornamento della posizione:', err);
+            alert('Impossibile aggiornare la posizione. Assicurati di aver concesso i permessi.');
+        } finally {
+            setUpdatingLocation(false);
         }
     };
 
@@ -373,6 +404,28 @@ const ProfilePage = () => {
                 <div style={styles.infoRow}>
                     <AppIcon name="shield-check" size={20} color="primary" />
                     <span>Ruolo: <strong>{getRoleLabel(user.role)}</strong></span>
+                </div>
+                <div style={styles.infoRow}>
+                    <AppIcon name="map-marker" size={20} color="primary" />
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>{user.location || 'Posizione non impostata'}</span>
+                        <button 
+                            onClick={handleUpdateLocation} 
+                            disabled={updatingLocation}
+                            style={{ 
+                                background: 'var(--color-accent)', 
+                                border: 'none', 
+                                borderRadius: '8px', 
+                                padding: '4px 8px', 
+                                fontSize: '11px', 
+                                fontWeight: 'bold', 
+                                cursor: 'pointer',
+                                color: 'var(--color-primary)'
+                            }}
+                        >
+                            {updatingLocation ? '...' : 'Aggiorna'}
+                        </button>
+                    </div>
                 </div>
                 <div style={{ ...styles.infoRow, borderBottom: 'none' }}>
                     <AppIcon name="calendar-lines" size={20} color="primary" />
