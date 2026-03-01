@@ -85,5 +85,24 @@ Per permettere il caricamento della foto profilo, devi creare un bucket pubblico
 | 5 | SQL Editor: esegui `storage_setup.sql` (Storage Foto) |
 | 6 | Authentication → URL Configuration (Site URL + Redirect URLs) |
 | 7 | `npm run dev` e prova Registrazione / Login |
+| 8 | SQL Editor: esegui `storage_setup.sql` (Storage Foto) |
+| 9 | UptimeRobot: configura monitor porta 443 (Keep Alive) |
 
-✅ **Fatto!** Se la registrazione dà ancora "Failed to fetch", controlla la sezione in cima (URL Configuration e .env).
+---
+
+## Passo 9: Mantenere il database attivo (UptimeRobot)
+Supabase (piano gratuito) mette in pausa il database dopo 7 giorni di inattività. Per evitarlo, usa **UptimeRobot**:
+
+1. Crea un account su [UptimeRobot.com](https://uptimerobot.com).
+2. Clicca su **"+ Add New Monitor"**.
+3. **Monitor Type**: Seleziona **"Port"** (Importante: non usare HTTP/s).
+4. **Friendly Name**: `Supabase Keep Alive`
+5. **IP or Host**: `naqwhpgtawbsdhuogrgp.supabase.co` (senza https://)
+6. **Port**: `443`
+7. **Monitor Interval**: `5 minutes` (o quello che preferisci).
+8. Clicca **"Create Monitor"**.
+
+**Perché porta 443?**
+Monitorare l'URL con HTTP/s dà spesso errore **404** o **401** perché Supabase non ha una pagina web nella "root". Monitorando la porta **443**, verifichiamo che il server sia acceso e connesso, il che è sufficiente per tenerlo attivo.
+
+✅ **Fatto!** Ora il tuo database non andrà più in pausa.
