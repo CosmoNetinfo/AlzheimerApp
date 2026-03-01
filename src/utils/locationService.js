@@ -5,27 +5,45 @@ import { Geolocation } from '@capacitor/geolocation';
  * @returns {Promise<{latitude: number, longitude: number}>}
  */
 export const getCurrentPosition = async () => {
+    // Se siamo su Web/PWA, usiamo direttamente l'API nativa del browser che è più affidabile per i popup
+    if (!window.Capacitor || window.Capacitor.getPlatform() === 'web') {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocalizzazione non supportata dal browser'));
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    });
+                },
+                (error) => {
+                    console.error('Errore Geolocation Web:', error);
+                    let msg = 'Errore sconosciuto';
+                    if (error.code === 1) msg = 'Permessi negati dal browser.';
+                    else if (error.code === 2) msg = 'Posizione non disponibile.';
+                    else if (error.code === 3) msg = 'Timeout richiesta.';
+                    reject(new Error(msg));
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        });
+    }
+
+    // Su Android/iOS nativo usiamo il plugin Capacitor
     try {
         const permissions = await Geolocation.checkPermissions();
-        
         if (permissions.location !== 'granted') {
             const request = await Geolocation.requestPermissions();
-            if (request.location !== 'granted') {
-                throw new Error('Permessi di geolocalizzazione negati');
-            }
+            if (request.location !== 'granted') throw new Error('Permessi negati');
         }
-
-        const coordinates = await Geolocation.getCurrentPosition({
-            enableHighAccuracy: true,
-            timeout: 10000
-        });
-
-        return {
-            latitude: coordinates.coords.latitude,
-            longitude: coordinates.coords.longitude
-        };
+        const coordinates = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+        return { latitude: coordinates.coords.latitude, longitude: coordinates.coords.longitude };
     } catch (error) {
-        console.error('Errore durante l\'acquisizione della posizione:', error);
+        console.error('Errore Geolocation Nativa:', error);
         throw error;
     }
 };
