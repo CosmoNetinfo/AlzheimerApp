@@ -57,4 +57,10 @@ npm run dev
 Per configurare correttamente Supabase (Database, Auth e Storage per le foto profilo), segui la **[Guida Supabase](GUIDA_SUPABASE.md)**.
 
 ---
+
+## 👥 Per i Collaboratori
+Se stai lavorando a questo progetto, è **fondamentale** seguire queste regole:
+1. Leggi sempre il file **[PROGETTO_RECAP.md](PROGETTO_RECAP.md)** per conoscere lo stato attuale dei lavori.
+2. Ogni volta che fai un push, aggiorna la sezione **Changelog** in fondo a `PROGETTO_RECAP.md`.
+
 *Sviluppato con dedizione da **Daniele Spalletti** ([cosmonet.info](https://www.cosmonet.info)) per migliorare la qualità della vita quotidiana attraverso la tecnologia.*

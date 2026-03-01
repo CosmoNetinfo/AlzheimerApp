@@ -3,7 +3,16 @@
 **Progetto**: Memora - App per supporto Alzheimer  
 **Sviluppatori**: Daniele Spalletti & Michele Mosca (CosmoNet.info)  
 **Cliente**: Airalzh  
-**Ultimo Aggiornamento**: 27 Gennaio 2026, ore 02:40
+**Ultimo Aggiornamento**: 1 Marzo 2026
+
+---
+
+> [!IMPORTANT]
+> ### 🛑 REGOLA PER I COLLABORATORI
+> Ogni volta che viene effettuata una modifica al codice o alla configurazione, **È OBBLIGATORIO**:
+> 1. Aggiornare la sezione **CHANGELOG** in fondo a questo file con la data e il dettaglio dei cambiamenti.
+> 2. Se viene aggiunta una nuova funzionalità, creare la relativa sezione o spuntare le checklist sopra.
+> 3. Documentare eventuali nuove variabili d'ambiente o script SQL necessari.
 
 ---
 
@@ -112,8 +121,20 @@ Creare una Progressive Web App (PWA) per supportare pazienti affetti da Alzheime
 - [x] **Mood selector** per pazienti (3 pulsanti interattivi cliccabili)
 - [x] Card informazioni (email, ruolo, data iscrizione)
 - [x] Card azioni rapide (Impostazioni, Post)
-- [x] Pulsante logout rosso
 - [x] Footer con credits
+
+### 10. **Geolocalizzazione (Safety & Location)** ✓
+- [x] Integrazione `@capacitor/geolocation`.
+- [x] Permessi nativi configurati (Android & iOS).
+- [x] Servizio `locationService.js` con Reverse Geocoding (da coordinate a indirizzo).
+- [x] Tasto "Aggiorna Posizione" nel profilo utente.
+- [x] Salvataggio posizione in Supabase (tabella `profiles`).
+- [x] Gestione permessi e fallback per Web App (PWA).
+
+### 11. **Manutenzione & Keep-Alive** ✓
+- [x] Configurazione **UptimeRobot** per evitare la pausa del database Supabase (Free Tier).
+- [x] Istruzioni dettagliate in `GUIDA_SUPABASE.md` per monitoraggio Porta 443.
+- [x] Script SQL per configurazione Storage bucket `avatars` con policy pubbliche.
 
 ### 10. **Impostazioni** ✓
 - [x] Gestione notifiche push (OneSignal + Fallback nativo)
@@ -371,18 +392,13 @@ AlzheimerApp/
 
 ---
 
-## 📅 CHANGELOG ULTIMA SESSIONE (27 Gen 2026)
+## 📅 CHANGELOG ULTIMA SESSIONE (1 Marzo 2026)
 
-### Ore 02:00 - 02:40
-- ✅ Aggiunto sistema completo mood tracking con:
-  - Bordi colorati avatar (verde/giallo/rosso)
-  - Emoji accanto ai nomi (😊😐😢)
-  - Persistenza in Supabase
-  - Visualizzazione su Profilo, Homepage, Feed
-- ✅ Fix chat layout per compatibilità sidebar PC
-- ✅ Fix pulsanti mood cliccabili (pointerEvents, userSelect)
-- ✅ Aggiunto author_id ai post per tracking mood
-- ✅ Fetch batch mood da profiles per performance
-- ✅ Aggiornato PROGETTO_RECAP.md con tutte le features
+### Ore 14:00 - 16:30
+- ✅ **Geolocalizzazione**: Implementata acquisizione posizione e reverse geocoding.
+- ✅ **Fix Storage**: Risolto errore caricamento foto profilo tramite script SQL per bucket `avatars`.
+- ✅ **UptimeRobot**: Aggiunta guida per mantenere il database attivo (Port 443).
+- ✅ **Web App Compatibility**: Corretto sistema di permessi per la geolocalizzazione su PWA Android/iOS.
+- ✅ **Collaborator Rules**: Creato sistema di tracciamento modifiche obbligatorio in `PROGETTO_RECAP.md`.
 
-**Ultimo aggiornamento**: 27 Gennaio 2026, ore 02:40
+**Ultimo aggiornamento**: 1 Marzo 2026
