@@ -80,7 +80,7 @@ const Header = ({ title }) => {
         <header className="app-header" style={styles.header}>
             <Link to="/profilo" className="app-header-profile" style={styles.profileBtn}>
                 <div style={styles.avatar}>
-                    {user.photo ? (
+                    {user.photo && typeof user.photo === 'string' && user.photo.startsWith('http') ? (
                         <img src={user.photo} style={styles.avatarImg} alt="Profilo" />
                     ) : (
                         user.name?.[0] || <AppIcon name="user" size={20} />

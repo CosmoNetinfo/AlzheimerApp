@@ -352,7 +352,7 @@ const FeedPage = () => {
                 <div style={styles.card}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                         <div style={styles.avatar(userMoods[user.id || (user.name + (user.surname || ''))])}>
-                            {user.photo ? <img src={user.photo} style={styles.avatarImg} alt="Profilo" /> : user.name[0]}
+                            {user.photo && typeof user.photo === 'string' && user.photo.startsWith('http') ? <img src={user.photo} style={styles.avatarImg} alt="Profilo" /> : user.name[0]}
                         </div>
                         <input style={styles.input} placeholder={`A che pensi, ${user.name}?`} value={newPostText} onChange={(e) => setNewPostText(e.target.value)} />
                     </div>
@@ -378,7 +378,7 @@ const FeedPage = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                         <div style={{ display: 'flex', gap: '10px', minWidth: 0, flex: 1 }}>
                             <div style={styles.avatar(authorMood)}>
-                                {post.author_photo ? <img src={post.author_photo} style={styles.avatarImg} alt="Autore" /> : (post.author?.[0] || 'U')}
+                                {post.author_photo && typeof post.author_photo === 'string' && post.author_photo.startsWith('http') ? <img src={post.author_photo} style={styles.avatarImg} alt="Autore" /> : (post.author?.[0] || 'U')}
                             </div>
                             <div style={{ minWidth: 0 }}>
                                 <div style={{ fontWeight: '700', color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -418,7 +418,7 @@ const FeedPage = () => {
                             {(comments[post.id] || []).map(comm => (
                                 <div key={comm.id} style={styles.comment}>
                                     <div style={styles.avatarSmall()}>
-                                        {comm.author_photo ? <img src={comm.author_photo} style={styles.avatarImg} alt="C" /> : comm.author_name[0]}
+                                        {comm.author_photo && typeof comm.author_photo === 'string' && comm.author_photo.startsWith('http') ? <img src={comm.author_photo} style={styles.avatarImg} alt="C" /> : comm.author_name[0]}
                                     </div>
                                     <div style={styles.commentBubble}>
                                         <div style={styles.commentAuthor}>{comm.author_name}</div>
@@ -429,7 +429,7 @@ const FeedPage = () => {
                             
                             <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                                 <div style={styles.avatarSmall()}>
-                                    {user.photo ? <img src={user.photo} style={styles.avatarImg} alt="Me" /> : user.name[0]}
+                                    {user.photo && typeof user.photo === 'string' && user.photo.startsWith('http') ? <img src={user.photo} style={styles.avatarImg} alt="Me" /> : user.name[0]}
                                 </div>
                                 <input 
                                     style={styles.input} 

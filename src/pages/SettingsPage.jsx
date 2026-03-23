@@ -171,7 +171,7 @@ const SettingsPage = () => {
         <input type="file" ref={fileInputRef} accept="image/*" onChange={handlePhotoChange} hidden />
         <button type="button" style={styles.avatarWrap} onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto} aria-label="Cambia foto profilo">
           <div style={styles.avatar}>
-            {user.photo ? <img src={user.photo} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="Profilo" /> : <AppIcon name="user" size={30} color="white" />}
+            {user.photo && typeof user.photo === 'string' && user.photo.startsWith('http') ? <img src={user.photo} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="Profilo" /> : <AppIcon name="user" size={30} color="white" />}
           </div>
           <span style={styles.avatarOverlay}>
             <AppIcon name="camera" size={14} color="white" />
