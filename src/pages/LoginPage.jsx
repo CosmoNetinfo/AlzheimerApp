@@ -53,6 +53,14 @@ const LoginPage = () => {
                 }
 
                 if (profile) {
+                    // Controllo BAN
+                    if (profile.is_banned) {
+                        setError("Questo account è stato sospeso.");
+                        await supabase.auth.signOut();
+                        setLoading(false);
+                        return;
+                    }
+
                     localStorage.setItem('alzheimer_user', JSON.stringify({
                         id: profile.id,
                         name: profile.name,
