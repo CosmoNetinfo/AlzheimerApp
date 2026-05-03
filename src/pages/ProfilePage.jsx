@@ -40,21 +40,23 @@ const ProfilePage = () => {
                     .eq('id', profileId)
                     .single();
 
-                // Se non trovato per ID, prova a cercare in modo più permissivo
-                if (error || !data) {
-                    const { data: retryData } = await supabase
+                if (error) {
+                    console.error("Supabase Error:", error);
+                    // Prova a cercare in modo più permissivo
+                    const { data: retryData, error: retryError } = await supabase
                         .from('profiles')
                         .select('id, name, surname, current_mood, role, bio, location, email, photo_url, last_active')
-                        .or(`id.eq.${profileId},name.ilike.%${profileId}%`)
-                        .limit(1)
-                        .single();
+                        .eq('id', profileId)
+                        .maybeSingle();
+                    
                     if (retryData) {
                         data = retryData;
-                        error = null;
+                    } else {
+                        throw error || new Error("Profilo non esistente");
                     }
                 }
 
-                if (!error && data) {
+                if (data) {
                     setCurrentMood(data.current_mood);
                     setUser({
                         ...data,
@@ -442,9 +444,20 @@ const ProfilePage = () => {
 
     if (!user && !loading) return (
         <div style={{ padding: '40px', textAlign: 'center', backgroundColor: 'var(--color-bg-primary)', height: '100vh' }}>
-            <p>Utente non trovato</p>
-            <div style={{ fontSize: '10px', color: '#ccc', marginTop: '10px' }}>ID: {id || 'none'}</div>
-            <button onClick={() => navigate(-1)} style={{ color: 'var(--color-primary)', border: 'none', background: 'none', fontWeight: 'bold', cursor: 'pointer', marginTop: '20px' }}>Torna indietro</button>
+            <div style={{ textAlign: 'center', padding: '100px 20px' }}>
+                <h2 style={{ color: 'var(--color-primary-dark)' }}>Utente non trovato</h2>
+                <p style={{ color: '#999', fontSize: '12px', marginTop: '20px', fontFamily: 'monospace' }}>
+                    ID: {id || loggedInUser?.id}<br/>
+                    Status: Il profilo non esiste ancora nel database.<br/>
+                    Azione: L'utente deve aver effettuato l'accesso almeno una volta.
+                </p>
+                <button 
+                    onClick={() => navigate('/')} 
+                    style={{ marginTop: '30px', background: 'none', border: 'none', color: 'var(--color-primary)', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                    Torna alla Home
+                </button>
+            </div>
         </div>
     );
 
