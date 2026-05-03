@@ -26,18 +26,15 @@ const Layout = () => {
     }, []);
 
     const getTitle = (path) => {
-        if (path.includes('/chat/')) return 'Chat';
-        if (path.includes('/profilo/')) return 'Profilo';
+        if (path.startsWith('/chat')) return 'Chat';
+        if (path.startsWith('/profilo')) return 'Profilo';
+        if (path.startsWith('/feed')) return 'Memoriae';
+        if (path.startsWith('/utenti')) return 'Ricerca';
+        if (path.startsWith('/impostazioni')) return 'Impostazioni';
+        if (path.startsWith('/report-umore')) return 'Report Umore';
         
-        switch (path) {
-            case '/': return 'Home';
-            case '/chat': return 'Messaggi';
-            case '/feed': return 'Memoriae';
-            case '/impostazioni': return 'Impostazioni';
-            case '/report-umore': return 'Report Umore';
-            case '/utenti': return 'Ricerca';
-            default: return 'Memora';
-        }
+        if (path === '/') return 'Home';
+        return 'Memora';
     };
 
     const isFullPage = location.pathname.includes('/chat/') || 
