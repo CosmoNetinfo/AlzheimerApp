@@ -149,7 +149,7 @@ const FindPeoplePage = () => {
                                             width: '8px', 
                                             height: '8px', 
                                             borderRadius: '50%', 
-                                            backgroundColor: (u.last_active && (new Date() - new Date(u.last_active)) < 300000) ? '#10B981' : '#EF4444' 
+                                            backgroundColor: (u.last_active && (new Date() - new Date(u.last_active)) < 600000) ? '#10B981' : '#EF4444' 
                                         }} />
                                     </div>
                                     <div style={styles.roleBadge}>{getRoleLabel(u.role)}</div>

@@ -499,9 +499,9 @@ const ProfilePage = () => {
                         width: '10px', 
                         height: '10px', 
                         borderRadius: '50%', 
-                        backgroundColor: (user.last_active && (new Date() - new Date(user.last_active)) < 300000) ? '#10B981' : '#EF4444', 
+                        backgroundColor: (user.last_active && (new Date() - new Date(user.last_active)) < 600000) ? '#10B981' : '#EF4444', 
                         marginLeft: '8px',
-                        boxShadow: `0 0 5px ${(user.last_active && (new Date() - new Date(user.last_active)) < 300000) ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)'}`
+                        boxShadow: `0 0 5px ${(user.last_active && (new Date() - new Date(user.last_active)) < 600000) ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)'}`
                     }} />
                     {currentMood && <span style={styles.moodEmoji}>{getMoodEmoji(currentMood)}</span>}
                 </h1>

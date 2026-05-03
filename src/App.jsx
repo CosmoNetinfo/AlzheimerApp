@@ -25,11 +25,13 @@ function App() {
             const updateActivity = async () => {
                 const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{}');
                 if (user.id) {
-                    await supabase.from('profiles').update({ last_active: new Date().toISOString() }).eq('id', user.id);
+                    await supabase.from('profiles').update({ 
+                        last_active: new Date().toISOString() 
+                    }).eq('id', user.id);
                 }
             };
             updateActivity();
-            const interval = setInterval(updateActivity, 60000);
+            const interval = setInterval(updateActivity, 30000); // Ogni 30 secondi invece di 60
             return () => clearInterval(interval);
         }
     }, [isAuthenticated]);
