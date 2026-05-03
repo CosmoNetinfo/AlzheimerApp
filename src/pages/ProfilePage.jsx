@@ -16,6 +16,8 @@ const ProfilePage = () => {
     const [loading, setLoading] = useState(true);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [updatingLocation, setUpdatingLocation] = useState(false);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [stats, setStats] = useState({ followers: 0, following: 0 });
     const fileInputRef = useRef(null);
 
     const isPatient = user.role === 'patient';
@@ -41,6 +43,14 @@ const ProfilePage = () => {
                     // Fallback se il profilo proprio non viene trovato (es. primo login senza trigger)
                     setUser(loggedInUser);
                 }
+
+                // Carica statistiche seguiti
+                fetchFollowStats(profileId);
+                
+                // Se non è il proprio profilo, controlla se lo seguiamo
+                if (!isOwnProfile && loggedInUser.id) {
+                    checkFollowStatus(loggedInUser.id, profileId);
+                }
             } catch (e) {
                 console.error("Error fetching user data", e);
             } finally {
@@ -49,6 +59,36 @@ const ProfilePage = () => {
         };
         fetchUserData();
     }, [id, loggedInUser.id]);
+
+    const fetchFollowStats = async (profileId) => {
+        const { count: followers } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('followed_id', profileId);
+        const { count: following } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profileId);
+        setStats({ followers: followers || 0, following: following || 0 });
+    };
+
+    const checkFollowStatus = async (followerId, followedId) => {
+        const { data } = await supabase.from('follows').select('*').eq('follower_id', followerId).eq('followed_id', followedId).single();
+        setIsFollowing(!!data);
+    };
+
+    const handleFollowToggle = async () => {
+        if (!loggedInUser.id) return;
+        const profileId = id || user.id;
+
+        if (isFollowing) {
+            const { error } = await supabase.from('follows').delete().eq('follower_id', loggedInUser.id).eq('followed_id', profileId);
+            if (!error) {
+                setIsFollowing(false);
+                setStats(prev => ({ ...prev, followers: prev.followers - 1 }));
+            }
+        } else {
+            const { error } = await supabase.from('follows').insert([{ follower_id: loggedInUser.id, followed_id: profileId }]);
+            if (!error) {
+                setIsFollowing(true);
+                setStats(prev => ({ ...prev, followers: prev.followers + 1 }));
+            }
+        }
+    };
 
     const handleLogout = () => {
         if (window.confirm("Sei sicuro di voler uscire?")) {
@@ -412,27 +452,55 @@ const ProfilePage = () => {
 
                 {user.bio && <p style={{ color: '#6B7280', fontSize: '14px', margin: '12px 0 0 0' }}>{user.bio}</p>}
 
+                {/* Statistiche Seguiti */}
+                <div style={{ display: 'flex', gap: '24px', marginTop: '16px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{stats.following}</div>
+                        <div style={{ fontSize: '12px', color: '#6B7280' }}>Seguiti</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{stats.followers}</div>
+                        <div style={{ fontSize: '12px', color: '#6B7280' }}>Follower</div>
+                    </div>
+                </div>
+
                 {!isOwnProfile && (
-                    <button 
-                        onClick={() => navigate(`/chat-privata/${user.id}`)}
-                        style={{
-                            marginTop: '20px',
-                            backgroundColor: 'var(--color-primary)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '25px',
-                            padding: '12px 24px',
-                            fontWeight: 'bold',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 12px rgba(136, 0, 68, 0.2)'
-                        }}
-                    >
-                        <AppIcon name="paper-plane" size={18} color="white" />
-                        Invia Messaggio
-                    </button>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                        <button 
+                            onClick={handleFollowToggle}
+                            style={{
+                                flex: 1,
+                                backgroundColor: isFollowing ? 'white' : 'var(--color-primary)',
+                                color: isFollowing ? 'var(--color-primary)' : 'white',
+                                border: `2px solid var(--color-primary)`,
+                                borderRadius: '25px',
+                                padding: '10px 20px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {isFollowing ? 'Segui già' : 'Segui'}
+                        </button>
+                        <button 
+                            onClick={() => navigate(`/chat-privata/${user.id}`)}
+                            style={{
+                                backgroundColor: 'var(--color-accent)',
+                                color: 'var(--color-primary)',
+                                border: 'none',
+                                borderRadius: '25px',
+                                padding: '10px 20px',
+                                fontWeight: 'bold',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <AppIcon name="paper-plane" size={18} color="primary" />
+                            Messaggio
+                        </button>
+                    </div>
                 )}
             </div>
 

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import AppIcon from './AppIcon';
 import { useState, useEffect } from 'react';
+import { Search } from 'lucide-react';
 
 const Header = ({ title }) => {
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('alzheimer_user') || '{}'));
@@ -88,6 +89,9 @@ const Header = ({ title }) => {
                 </div>
             </Link>
             <h1 style={styles.title}>{title}</h1>
+            <Link to="/cerca-persone" style={{ ...styles.settingsBtn, right: '96px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="app-header-search">
+                <Search size={24} />
+            </Link>
             <Link to="/messaggi" style={{ ...styles.settingsBtn, right: '56px' }} className="app-header-messages">
                 <AppIcon name="envelope" size={24} />
             </Link>
