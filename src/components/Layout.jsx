@@ -47,8 +47,13 @@ const Layout = () => {
 
     return (
         <div className={`app-container${isFullPage ? ' full-page' : ''}`}>
+            {/* Banner di DEBUG temporaneo - Rimuoveremo appena risolto */}
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, backgroundColor: 'red', color: 'white', fontSize: '10px', zIndex: 9999, textAlign: 'center', padding: '2px' }}>
+                Path: {currentPath} | Hide: {hideTabBar ? 'SI' : 'NO'} | Page: {getTitle(currentPath)}
+            </div>
+            
             <Header title={getTitle(currentPath)} />
-            <main className={`main-content${isFullPage ? ' full-page' : ''}${isChatPage ? ' full-page-fill' : ''}${isProfilePage ? ' page-profilo' : ''}`} style={{ paddingTop: 'var(--header-height)' }}>
+            <main className={`main-content${isFullPage ? ' full-page' : ''}${isChatPage ? ' full-page-fill' : ''}${isProfilePage ? ' page-profilo' : ''}`} style={{ paddingTop: 'calc(var(--header-height) + 15px)' }}>
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={location.pathname}
@@ -59,7 +64,7 @@ const Layout = () => {
                     </motion.div>
                 </AnimatePresence>
             </main>
-            {!hideTabBar && <TabBar />}
+            {hideTabBar ? null : <TabBar />}
         </div>
     );
 };
