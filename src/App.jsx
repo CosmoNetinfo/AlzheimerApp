@@ -108,22 +108,18 @@ function App() {
                     return;
                 }
 
-                    // 2. Aggiornamento dati se cambiati (es. ruolo)
-                    const updatedUser = {
-                        ...localUser,
-                        name: profile.name,
-                        surname: profile.surname,
-                        role: profile.role,
-                        photo: profile.photo_url
-                    };
+                // 2. Aggiornamento dati se cambiati (es. ruolo)
+                const updatedUser = {
+                    id: userId,
+                    name: profile.name,
+                    surname: profile.surname,
+                    role: profile.role,
+                    photo: profile.photo_url
+                };
 
-                    if (JSON.stringify(localUser) !== JSON.stringify(updatedUser)) {
-                        console.log("Profilo aggiornato dall'admin, sincronizzo...");
-                        localStorage.setItem('alzheimer_user', JSON.stringify(updatedUser));
-                        // Non forziamo il refresh dello stato per evitare loop, 
-                        // ma i componenti leggeranno i nuovi dati al prossimo render
-                    }
-                } catch (e) {
+                localStorage.setItem('alzheimer_user', JSON.stringify(updatedUser));
+                console.log("Profilo sincronizzato con successo! ✅");
+            } catch (e) {
                 console.error("Errore critico durante il sync:", e);
             } finally {
                 setLoading(false);
