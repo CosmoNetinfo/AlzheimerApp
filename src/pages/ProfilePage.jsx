@@ -9,8 +9,8 @@ import { getCurrentPosition, getAddressFromCoords } from '../utils/locationServi
 const ProfilePage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const loggedInUser = JSON.parse(localStorage.getItem('alzheimer_user') || '{}');
-    const isOwnProfile = !id || id === loggedInUser.id;
+    const loggedInUser = JSON.parse(localStorage.getItem('alzheimer_user') || 'null');
+    const isOwnProfile = !id || (loggedInUser && id === loggedInUser.id);
     const [user, setUser] = useState(isOwnProfile ? loggedInUser : null);
     const [currentMood, setCurrentMood] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -26,18 +26,33 @@ const ProfilePage = () => {
         const fetchUserData = async () => {
             setLoading(true);
             try {
-                const profileId = id || loggedInUser.id;
+                const profileId = id || loggedInUser?.id;
                 
                 if (!profileId) {
+                    console.error("No profile ID found");
                     setLoading(false);
                     return;
                 }
 
-                const { data, error } = await supabase
+                let { data, error } = await supabase
                     .from('profiles')
                     .select('id, name, surname, current_mood, role, bio, location, email, photo_url')
                     .eq('id', profileId)
                     .single();
+
+                // Se non trovato per ID, prova a cercare in modo più permissivo
+                if (error || !data) {
+                    const { data: retryData } = await supabase
+                        .from('profiles')
+                        .select('id, name, surname, current_mood, role, bio, location, email, photo_url')
+                        .or(`id.eq.${profileId},name.ilike.%${profileId}%`)
+                        .limit(1)
+                        .single();
+                    if (retryData) {
+                        data = retryData;
+                        error = null;
+                    }
+                }
 
                 if (!error && data) {
                     setCurrentMood(data.current_mood);
@@ -47,26 +62,10 @@ const ProfilePage = () => {
                     });
                 } else if (isOwnProfile) {
                     setUser(loggedInUser);
-                } else {
-                    // Se non è il proprio profilo e non lo trova, potrebbe essere un vecchio ID stringa
-                    // Proviamo a cercare per nome+cognome come fallback (solo se id non è UUID)
-                    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(profileId);
-                    if (!isUUID) {
-                        const { data: fallbackData } = await supabase
-                            .from('profiles')
-                            .select('id, name, surname, current_mood, role, bio, location, email, photo_url')
-                            .filter('id', 'ilike', `%${profileId}%`) // Ricerca testuale grezza se non è UUID
-                            .limit(1)
-                            .single();
-                        
-                        if (fallbackData) {
-                            setUser({ ...fallbackData, photo: fallbackData.photo_url });
-                        }
-                    }
                 }
 
                 fetchFollowStats(profileId);
-                if (!isOwnProfile && loggedInUser.id) {
+                if (!isOwnProfile && loggedInUser?.id) {
                     checkFollowStatus(loggedInUser.id, profileId);
                 }
             } catch (e) {
@@ -76,7 +75,7 @@ const ProfilePage = () => {
             }
         };
         fetchUserData();
-    }, [id]); // Ricarica solo quando cambia l'ID
+    }, [id]); 
 
     const fetchFollowStats = async (profileId) => {
         const { count: followers } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('followed_id', profileId);
@@ -413,7 +412,8 @@ const ProfilePage = () => {
     if (!user && !loading) return (
         <div style={{ padding: '40px', textAlign: 'center', backgroundColor: 'var(--color-bg-primary)', height: '100vh' }}>
             <p>Utente non trovato</p>
-            <button onClick={() => navigate(-1)} style={{ color: 'var(--color-primary)', border: 'none', background: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Torna indietro</button>
+            <div style={{ fontSize: '10px', color: '#ccc', marginTop: '10px' }}>ID: {id || 'none'}</div>
+            <button onClick={() => navigate(-1)} style={{ color: 'var(--color-primary)', border: 'none', background: 'none', fontWeight: 'bold', cursor: 'pointer', marginTop: '20px' }}>Torna indietro</button>
         </div>
     );
 
