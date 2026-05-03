@@ -302,7 +302,13 @@ const PrivateChatPage = () => {
                 </div>
                 <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 'bold' }}>{receiverProfile?.name} {receiverProfile?.surname}</div>
-                    <div style={{ fontSize: '11px', color: '#10b981' }}>Online</div>
+                    <div style={{ fontSize: '11px', color: receiverProfile?.last_active && (new Date() - new Date(receiverProfile.last_active)) < 60000 ? '#10b981' : '#9CA3AF' }}>
+                        {receiverProfile?.last_active && (new Date() - new Date(receiverProfile.last_active)) < 60000 
+                            ? 'Online' 
+                            : receiverProfile?.last_active 
+                                ? `Ultimo accesso: ${new Date(receiverProfile.last_active).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`
+                                : 'Offline'}
+                    </div>
                 </div>
             </div>
 
