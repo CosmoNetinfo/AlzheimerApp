@@ -39,24 +39,28 @@ function App() {
     React.useEffect(() => {
         let interval;
         if (isAuthenticated) {
-            const updateActivity = async () => {
+            const sendSignal = async () => {
                 const { data: { session } } = await supabase.auth.getSession();
                 const userId = session?.user?.id;
-                
-                if (userId) {
-                    const { data, error } = await supabase.from('profiles').update({ 
-                        last_active: new Date().toISOString() 
-                    }).eq('id', userId).select();
-                    
-                    if (error) {
-                        console.error("❌ Errore Database Segnale:", error);
-                    } else {
-                        console.log("🟢 Risultato Segnale:", data);
-                    }
+                if (!userId) return;
+
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ last_active: new Date().toISOString() })
+                    .eq('id', userId);
+
+                if (error) {
+                    console.error("❌ Errore segnale presenza:", error);
+                } else {
+                    console.log("🟢 Segnale attività inviato per:", userId);
                 }
             };
-            updateActivity();
-            interval = setInterval(updateActivity, 30000);
+
+            // Esegui immediatamente
+            sendSignal();
+
+            // Interval ogni 30 secondi
+            interval = setInterval(sendSignal, 30000);
         }
         return () => clearInterval(interval);
     }, [isAuthenticated]);
