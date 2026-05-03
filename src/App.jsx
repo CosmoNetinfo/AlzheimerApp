@@ -19,30 +19,42 @@ import FindPeoplePage from './pages/FindPeoplePage';
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem('alzheimer_user'));
+    const [loading, setLoading] = React.useState(true);
+    const location = useLocation();
 
+    // Listener ufficiale per l'autenticazione
     React.useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log("Evento Auth:", event);
+            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                setIsAuthenticated(true);
+            } else if (event === 'SIGNED_OUT') {
+                setIsAuthenticated(false);
+            }
+        });
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // Segnale di attività ONLINE
+    React.useEffect(() => {
+        let interval;
         if (isAuthenticated) {
             const updateActivity = async () => {
                 const { data: { session } } = await supabase.auth.getSession();
                 const userId = session?.user?.id;
                 
                 if (userId) {
-                    const { error } = await supabase.from('profiles').update({ 
+                    await supabase.from('profiles').update({ 
                         last_active: new Date().toISOString() 
                     }).eq('id', userId);
-                    
-                    if (error) console.error("Errore attività:", error);
-                    else console.log("Segnale di attività per:", userId);
+                    console.log("🟢 Segnale attività inviato per:", userId);
                 }
             };
             updateActivity();
-            const interval = setInterval(updateActivity, 30000);
-            return () => clearInterval(interval);
+            interval = setInterval(updateActivity, 30000);
         }
+        return () => clearInterval(interval);
     }, [isAuthenticated]);
-
-    const [loading, setLoading] = React.useState(true);
-    const location = useLocation();
 
     // Sincronizzazione profilo e controllo BAN
     React.useEffect(() => {
