@@ -10,6 +10,11 @@ const PrivateChatPage = () => {
     const [inputText, setInputText] = useState("");
     const [loading, setLoading] = useState(true);
     const [receiverProfile, setReceiverProfile] = useState(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
+    const [mediaRecorder, setMediaRecorder] = useState(null);
+    const [audioChunks, setAudioChunks] = useState([]);
+    const recordingIntervalRef = useRef(null);
     const messagesEndRef = useRef(null);
 
     const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{}');
@@ -52,11 +57,72 @@ const PrivateChatPage = () => {
             return [...prev, {
                 id: msg.id,
                 text: msg.content,
+                type: msg.type || 'text',
                 sender: msg.sender_id === currentUserId ? 'me' : 'other',
                 time: new Date(msg.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
             }];
         });
         setTimeout(scrollToBottom, 50);
+    };
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream);
+            const chunks = [];
+
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunks.push(e.data);
+            };
+
+            recorder.onstop = async () => {
+                const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+                await sendAudioMessage(audioBlob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            setAudioChunks(chunks);
+            setMediaRecorder(recorder);
+            recorder.start();
+            setIsRecording(true);
+            setRecordingDuration(0);
+            recordingIntervalRef.current = setInterval(() => {
+                setRecordingDuration(prev => prev + 1);
+            }, 1000);
+        } catch (err) {
+            console.error("Errore accesso microfono:", err);
+            alert("Permesso microfono negato o non supportato.");
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+            setIsRecording(false);
+            clearInterval(recordingIntervalRef.current);
+        }
+    };
+
+    const sendAudioMessage = async (blob) => {
+        const fileName = `${currentUserId}/${Date.now()}.webm`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('voice_messages')
+            .upload(fileName, blob);
+
+        if (uploadError) {
+            console.error("Errore upload audio:", uploadError);
+            return;
+        }
+
+        const { data: urlData } = supabase.storage.from('voice_messages').getPublicUrl(fileName);
+        const audioUrl = urlData.publicUrl;
+
+        await supabase.from('private_messages').insert([{
+            sender_id: currentUserId,
+            receiver_id: receiverId,
+            content: audioUrl,
+            type: 'audio'
+        }]);
     };
 
     const markMessagesAsRead = async () => {
@@ -89,6 +155,7 @@ const PrivateChatPage = () => {
                 setMessages(data.map(msg => ({
                     id: msg.id,
                     text: msg.content,
+                    type: msg.type || 'text',
                     sender: msg.sender_id === currentUserId ? 'me' : 'other',
                     time: new Date(msg.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
                 })));
@@ -237,7 +304,16 @@ const PrivateChatPage = () => {
                 {messages.length === 0 && <div style={{ textAlign: 'center', color: '#9CA3AF', marginTop: '20px' }}>Inizia la conversazione con un messaggio!</div>}
                 {messages.map(msg => (
                     <div key={msg.id} style={styles.bubble(msg.sender)}>
-                        <p style={styles.messageText}>{msg.text}</p>
+                        {msg.type === 'audio' ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '160px' }}>
+                                <AppIcon name="microphone" size={20} color={msg.sender === 'me' ? "#fff" : "primary"} />
+                                <audio controls style={{ height: '30px', width: '100%' }}>
+                                    <source src={msg.text} type="audio/webm" />
+                                </audio>
+                            </div>
+                        ) : (
+                            <p style={styles.messageText}>{msg.text}</p>
+                        )}
                         <div style={styles.messageTime}>{msg.time}</div>
                     </div>
                 ))}
@@ -245,17 +321,36 @@ const PrivateChatPage = () => {
             </div>
 
             <div style={styles.inputArea}>
-                <input
-                    type="text"
-                    placeholder="Messaggio..."
-                    style={styles.input}
-                    value={inputText}
-                    onChange={e => setInputText(e.target.value)}
-                    onKeyPress={e => e.key === 'Enter' && handleSend()}
-                />
-                <button style={styles.sendButton} onClick={handleSend}>
-                    <AppIcon name="paper-plane" size={20} color="white" />
-                </button>
+                {isRecording ? (
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 15px', color: '#EF4444' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
+                            <span>Registrazione... {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}</span>
+                        </div>
+                        <button onClick={stopRecording} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontWeight: 'bold', cursor: 'pointer' }}>Invia</button>
+                    </div>
+                ) : (
+                    <>
+                        <input
+                            type="text"
+                            placeholder="Messaggio..."
+                            style={styles.input}
+                            value={inputText}
+                            onChange={e => setInputText(e.target.value)}
+                            onKeyPress={e => e.key === 'Enter' && handleSend()}
+                        />
+                        <button 
+                            onClick={startRecording} 
+                            style={{ background: 'none', border: 'none', padding: '10px', cursor: 'pointer' }}
+                            title="Registra vocale"
+                        >
+                            <AppIcon name="microphone" size={24} color="primary" />
+                        </button>
+                        <button style={styles.sendButton} onClick={handleSend} disabled={!inputText.trim()}>
+                            <AppIcon name="paper-plane" size={20} color="white" />
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     );
