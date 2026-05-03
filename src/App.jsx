@@ -99,8 +99,7 @@ function App() {
                         // Non forziamo il refresh dello stato per evitare loop, 
                         // ma i componenti leggeranno i nuovi dati al prossimo render
                     }
-                }
-            } catch (e) {
+                } catch (e) {
                 console.error("Errore critico durante il sync:", e);
             } finally {
                 setLoading(false);
