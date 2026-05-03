@@ -11,6 +11,8 @@ const DebugConsole = () => {
         onlineProfiles: 0
     });
 
+    const [errors, setErrors] = useState(() => JSON.parse(localStorage.getItem('debug_errors') || '[]'));
+
     useEffect(() => {
         const interval = setInterval(() => {
             const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{}');
@@ -23,12 +25,19 @@ const DebugConsole = () => {
             }));
         }, 2000);
 
+        const updateErrors = () => {
+            setErrors(JSON.parse(localStorage.getItem('debug_errors') || '[]'));
+        };
+
+        window.addEventListener('debug_error_added', updateErrors);
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             setStats(prev => ({ ...prev, authState: event }));
         });
 
         return () => {
             clearInterval(interval);
+            window.removeEventListener('debug_error_added', updateErrors);
             subscription.unsubscribe();
         };
     }, []);
@@ -90,11 +99,49 @@ const DebugConsole = () => {
                 <div><strong>Signal:</strong> {stats.lastSignal}</div>
             </div>
 
-            <div style={{ fontSize: '10px' }}>
-                <strong>Azioni Rapide:</strong>
+            {errors.length > 0 && (
+                <div style={{ marginBottom: '10px' }}>
+                    <strong style={{ color: '#ef4444' }}>🚨 ULTIMI ERRORI:</strong>
+                    <div style={{ 
+                        marginTop: '5px', 
+                        maxHeight: '150px', 
+                        overflowY: 'auto', 
+                        backgroundColor: '#fef2f2', 
+                        padding: '5px', 
+                        borderRadius: '4px',
+                        border: '1px solid #fee2e2'
+                    }}>
+                        {errors.map((err, i) => (
+                            <div key={i} style={{ marginBottom: '8px', borderBottom: '1px solid #fecaca', paddingBottom: '4px' }}>
+                                <div style={{ color: '#b91c1c', fontWeight: 'bold' }}>[{err.time}] {err.type}</div>
+                                <div style={{ color: '#4b5563', wordBreak: 'break-all' }}>{err.message}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+            
+            <div style={{ fontSize: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button 
+                    onClick={() => {
+                        const body = `LOG ERRORI MEMORA:\n\n${errors.map(e => `[${e.time}] ${e.type}: ${e.message}`).join('\n')}\n\nUser ID: ${stats.userId}`;
+                        window.location.href = `mailto:admindany@gmail.com?subject=REPORT ERRORE MEMORA&body=${encodeURIComponent(body)}`;
+                    }}
+                    style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                    📧 Invia Report a Admin
+                </button>
+
+                <button 
+                    onClick={() => { localStorage.removeItem('debug_errors'); setErrors([]); }}
+                    style={{ width: '100%', padding: '5px', backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                    Svuota Log Errori
+                </button>
+
                 <button 
                     onClick={() => { localStorage.clear(); window.location.reload(); }}
-                    style={{ display: 'block', width: '100%', marginTop: '5px', padding: '5px', backgroundColor: '#fee2e2', border: '1px solid #ef4444', borderRadius: '4px', cursor: 'pointer' }}
+                    style={{ width: '100%', marginTop: '5px', padding: '5px', backgroundColor: '#fee2e2', border: '1px solid #ef4444', borderRadius: '4px', cursor: 'pointer', color: '#b91c1c' }}
                 >
                     Resetta Tutto (Cache)
                 </button>

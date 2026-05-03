@@ -22,6 +22,31 @@ function App() {
     const [loading, setLoading] = React.useState(true);
     const location = useLocation();
 
+    // Gestione ERRORI Globale per lo scarafaggio 🪲
+    React.useEffect(() => {
+        const handleError = (event) => {
+            const errorMsg = event.message || (event.reason ? (event.reason.message || event.reason.toString()) : "Errore sconosciuto");
+            const errorLog = {
+                message: errorMsg,
+                time: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                type: event.type === 'unhandledrejection' ? 'Promessa' : 'Codice'
+            };
+            
+            const existingLogs = JSON.parse(localStorage.getItem('debug_errors') || '[]');
+            existingLogs.unshift(errorLog);
+            localStorage.setItem('debug_errors', JSON.stringify(existingLogs.slice(0, 10)));
+            
+            window.dispatchEvent(new CustomEvent('debug_error_added'));
+        };
+
+        window.addEventListener('error', handleError);
+        window.addEventListener('unhandledrejection', handleError);
+        return () => {
+            window.removeEventListener('error', handleError);
+            window.removeEventListener('unhandledrejection', handleError);
+        };
+    }, []);
+
     // Listener ufficiale per l'autenticazione
     React.useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
