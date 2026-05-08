@@ -11,7 +11,7 @@ const ErrorInterceptor = () => {
             addLog({
                 level: 'error',
                 source: 'window.onerror',
-                message: message.toString(),
+                message: message ? String(message) : 'Unknown Error',
                 details: { source, lineno, colno, stack: error?.stack }
             });
             if (originalOnError) return originalOnError.apply(this, arguments);
@@ -33,27 +33,36 @@ const ErrorInterceptor = () => {
         const originalConsoleError = console.error;
         const originalConsoleWarn = console.warn;
 
+        // Funzione helper sicura per convertire in stringa evitando errori circolari
+        const safeStringify = (obj) => {
+            try {
+                return JSON.stringify(obj);
+            } catch (e) {
+                return String(obj);
+            }
+        };
+
         console.error = function (...args) {
-            const message = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+            const message = args.map(a => (typeof a === 'object' ? safeStringify(a) : String(a))).join(' ');
             if (!message.includes('__NEXT_PRIVATE') && !message.includes('Warning: React does not recognize')) {
                 addLog({
                     level: 'error',
                     source: 'console.error',
                     message: message,
-                    details: { args }
+                    details: null // Evitiamo di passare 'args' che potrebbero contenere React fibers non serializzabili
                 });
             }
             originalConsoleError.apply(console, args);
         };
 
         console.warn = function (...args) {
-            const message = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+            const message = args.map(a => (typeof a === 'object' ? safeStringify(a) : String(a))).join(' ');
             if (!message.includes('__NEXT_PRIVATE') && !message.includes('Warning: ')) {
                 addLog({
                     level: 'warn',
                     source: 'console.warn',
                     message: message,
-                    details: { args }
+                    details: null
                 });
             }
             originalConsoleWarn.apply(console, args);
