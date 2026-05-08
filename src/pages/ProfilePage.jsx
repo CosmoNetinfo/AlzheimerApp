@@ -19,6 +19,9 @@ const ProfilePage = () => {
     const [updatingLocation, setUpdatingLocation] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false);
     const [stats, setStats] = useState({ followers: 0, following: 0 });
+    const [isEditingBio, setIsEditingBio] = useState(false);
+    const [tempBio, setTempBio] = useState("");
+    const [savingBio, setSavingBio] = useState(false);
     const fileInputRef = useRef(null);
 
     const isPatient = user?.role === 'patient';
@@ -246,6 +249,26 @@ const ProfilePage = () => {
             alert('Impossibile aggiornare la posizione. Assicurati di aver concesso i permessi.');
         } finally {
             setUpdatingLocation(false);
+        }
+    };
+
+    const handleSaveBio = async () => {
+        if (tempBio.length > 300) return;
+        setSavingBio(true);
+        try {
+            const profileId = user.id || (user.name + (user.surname || ''));
+            const { error } = await supabase.from('profiles').update({ bio: tempBio }).eq('id', profileId);
+            if (error) throw error;
+            
+            setUser(prev => ({ ...prev, bio: tempBio }));
+            const storedUser = JSON.parse(localStorage.getItem('alzheimer_user') || '{}');
+            localStorage.setItem('alzheimer_user', JSON.stringify({ ...storedUser, bio: tempBio }));
+            setIsEditingBio(false);
+        } catch (err) {
+            console.error('Errore aggiornamento bio:', err);
+            alert('Impossibile aggiornare la bio. Verifica la connessione.');
+        } finally {
+            setSavingBio(false);
         }
     };
 
@@ -577,7 +600,73 @@ const ProfilePage = () => {
                     </div>
                 )}
 
-                {user.bio && <p style={{ color: '#6B7280', fontSize: '14px', margin: '12px 0 0 0' }}>{user.bio}</p>}
+                {isEditingBio ? (
+                    <div style={{ marginTop: '16px', width: '100%', boxSizing: 'border-box', padding: '0 16px' }}>
+                        <textarea
+                            value={tempBio}
+                            onChange={(e) => setTempBio(e.target.value)}
+                            maxLength={300}
+                            placeholder="Scrivi qualcosa su di te (max 300 caratteri)..."
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                borderRadius: '12px',
+                                border: '1px solid #E5E7EB',
+                                fontSize: '14px',
+                                fontFamily: 'inherit',
+                                resize: 'vertical',
+                                minHeight: '80px',
+                                boxSizing: 'border-box',
+                                marginBottom: '8px'
+                            }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '12px', color: tempBio.length >= 300 ? '#EF4444' : '#9CA3AF' }}>
+                                {tempBio.length}/300
+                            </span>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button 
+                                    onClick={() => setIsEditingBio(false)} 
+                                    style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+                                >
+                                    Annulla
+                                </button>
+                                <button 
+                                    onClick={handleSaveBio} 
+                                    disabled={savingBio}
+                                    style={{ background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '20px', padding: '6px 16px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+                                >
+                                    {savingBio ? '...' : 'Salva'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '12px', width: '100%' }}>
+                        {user.bio ? (
+                            <>
+                                <p style={{ color: '#6B7280', fontSize: '14px', margin: 0, padding: '0 20px', whiteSpace: 'pre-wrap' }}>{user.bio}</p>
+                                {isOwnProfile && (
+                                    <button 
+                                        onClick={() => { setTempBio(user.bio); setIsEditingBio(true); }}
+                                        style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'bold', marginTop: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                    >
+                                        <AppIcon name="pencil" size={12} color="primary" /> Modifica Bio
+                                    </button>
+                                )}
+                            </>
+                        ) : (
+                            isOwnProfile && (
+                                <button 
+                                    onClick={() => { setTempBio(""); setIsEditingBio(true); }}
+                                    style={{ background: 'none', border: '1px dashed #D1D5DB', borderRadius: '20px', padding: '8px 16px', color: '#6B7280', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                >
+                                    <AppIcon name="add" size={14} color="#6B7280" /> Aggiungi una bio
+                                </button>
+                            )
+                        )}
+                    </div>
+                )}
 
                 {/* Statistiche Seguiti */}
                 <div style={{ display: 'flex', gap: '24px', marginTop: '16px' }}>
