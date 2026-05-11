@@ -98,6 +98,14 @@ const TabBar = () => {
             </NavLink>
 
             <NavLink
+                to="/analytics"
+                className={({ isActive }) => `${styles.tab} ${isActive ? styles.active : ''}`}
+            >
+                <AppIcon name="brain" size={24} />
+                <span className={styles.label}>Analisi</span>
+            </NavLink>
+
+            <NavLink
                 to="/profilo"
                 className={({ isActive }) => `${styles.tab} ${isActive ? styles.active : ''}`}
             >

@@ -207,8 +207,35 @@ const SettingsPage = () => {
 
         <button style={styles.menuItem} onClick={() => navigate('/guida')}>
           <div style={{ display: "flex", alignItems: "center" }}>
-            <div style={styles.iconWrapper("var(--color-primary)")}><AppIcon name="book" size={18} color="white" /></div>
+            <div style={styles.iconWrapper("var(--color-primary)")}><AppIcon name="calendar-lines" size={18} color="white" /></div>
             <span style={styles.itemLabel}>Guida all'Uso</span>
+          </div>
+          <ChevronRight size={20} color="#ccc" />
+        </button>
+      </div>
+
+      <h3 style={styles.sectionLabel}>Privacy e Dati</h3>
+      <div style={styles.menuCard}>
+        <button style={styles.menuItem} onClick={() => navigate('/analytics')}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <div style={styles.iconWrapper("#6366F1")}><AppIcon name="brain" size={18} color="white" /></div>
+            <span style={styles.itemLabel}>Statistiche e Analisi</span>
+          </div>
+          <ChevronRight size={20} color="#ccc" />
+        </button>
+
+        <button style={styles.menuItem} onClick={() => navigate('/ai-chat')}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <div style={styles.iconWrapper("#10B981")}><AppIcon name="paper-plane" size={18} color="white" /></div>
+            <span style={styles.itemLabel}>Assistente AI</span>
+          </div>
+          <ChevronRight size={20} color="#ccc" />
+        </button>
+
+        <button style={styles.menuItem} onClick={() => navigate('/profilo')}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <div style={styles.iconWrapper("#F59E0B")}><AppIcon name="lock" size={18} color="white" /></div>
+            <span style={styles.itemLabel}>Impostazioni Privacy</span>
           </div>
           <ChevronRight size={20} color="#ccc" />
         </button>

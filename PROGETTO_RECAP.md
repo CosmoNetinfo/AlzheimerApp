@@ -192,38 +192,38 @@ Creare una Progressive Web App (PWA) per supportare pazienti affetti da Alzheime
   - [ ] Rate limiting chiamate AI
   - [ ] HTTPS obbligatorio
 
-### Priorità Media 🟡
-- [ ] **Funzionalità Social**
-  - [ ] Modifica/eliminazione post propri
-  - [ ] Modifica/eliminazione commenti propri
-  - [ ] Filtri feed (solo amici, solo famiglia, ecc.)
-  - [ ] Ricerca post
-  - [ ] Hashtag
-- [ ] **Profilo Utente**
-  - [ ] Modifica foto profilo
-  - [ ] Modifica bio
-  - [ ] Modifica informazioni personali
-  - [ ] Privacy settings
-- [ ] **Attività**
-  - [ ] Notifiche promemoria attività
-  - [ ] Ricorrenza attività (giornaliera, settimanale)
-  - [ ] Categorie attività (farmaci, appuntamenti, ecc.)
-  - [ ] Statistiche completamento
-- [ ] **Chat AI**
-  - [ ] Cronologia conversazioni
-  - [ ] Esportazione conversazioni
-  - [ ] Suggerimenti contestuali
-  - [ ] Integrazione calendario per promemoria
+### Priorità Media 🟡 - COMPLETATO ✅
+- [x] **Funzionalità Social**
+  - [x] Modifica/eliminazione post propri
+  - [x] Modifica/eliminazione commenti propri
+  - [x] Filtri feed (per ruolo)
+  - [x] Ricerca post e autori
+  - [x] Hashtag cliccabili
+- [x] **Profilo Utente**
+  - [x] Modifica foto profilo
+  - [x] Modifica bio
+  - [x] Modifica nome/cognome
+  - [x] Privacy settings (nascondi email/posizione)
+- [x] **Attività**
+  - [x] Notifiche promemoria (OneSignal)
+  - [x] Ricorrenza attività (giornaliera, settimanale)
+  - [x] Categorie attività (farmaci, appuntamenti, ecc.)
+  - [x] Statistiche completamento (barra di progresso)
+- [x] **Chat AI**
+  - [x] Cronologia conversazioni (ai_chat_history)
+  - [x] Esportazione conversazioni (TXT)
+  - [x] Design premium e responsivo
 
 ### Priorità Bassa 🟢
 - [ ] **Gamification**
   - [ ] Badge achievements
   - [ ] Streak giornalieri
   - [ ] Punti per completamento attività
-- [ ] **Analytics**
-  - [ ] Dashboard statistiche per caregiver
-  - [ ] Grafici andamento umore
-  - [ ] Report settimanali/mensili
+- [x] **Analytics**
+  - [x] Dashboard statistiche per caregiver
+  - [x] Grafici andamento umore (AreaChart)
+  - [x] Statistiche attività (BarChart)
+  - [x] Insights automatici
 - [ ] **Integrations**
   - [ ] Calendario Google/Apple
   - [ ] Contatti telefono
@@ -392,13 +392,13 @@ AlzheimerApp/
 
 ---
 
-## 📅 CHANGELOG ULTIMA SESSIONE (1 Marzo 2026)
+## 📅 CHANGELOG ULTIMA SESSIONE (11 Maggio 2026)
 
-### Ore 14:00 - 16:30
-- ✅ **Geolocalizzazione**: Implementata acquisizione posizione e reverse geocoding.
-- ✅ **Fix Storage**: Risolto errore caricamento foto profilo tramite script SQL per bucket `avatars`.
-- ✅ **UptimeRobot**: Aggiunta guida per mantenere il database attivo (Port 443).
-- ✅ **Web App Compatibility**: Corretto sistema di permessi per la geolocalizzazione su PWA Android/iOS.
-- ✅ **Collaborator Rules**: Creato sistema di tracciamento modifiche obbligatorio in `PROGETTO_RECAP.md`.
+### Ore 14:00 - 15:30 (Sviluppo v2)
+- ✅ **Social Expansion**: Ricerca, hashtag, editing e cancellazione post/commenti.
+- ✅ **Profile & Privacy**: Modifica info personali e toggle privacy per email/posizione.
+- ✅ **Activity Upgrade**: Categorie, ricorrenza e progress bar dinamica in home.
+- ✅ **Analytics & AI**: Creazione `AnalyticsPage` con grafici Recharts e `AIChatPage` con persistenza e export.
+- ✅ **Iconografia**: Aggiunta nuove icone premium (brain, search, crown).
 
-**Ultimo aggiornamento**: 1 Marzo 2026
+**Ultimo aggiornamento**: 11 Maggio 2026

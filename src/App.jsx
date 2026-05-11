@@ -20,6 +20,8 @@ import MessagesListPage from './pages/MessagesListPage';
 import PrivateChatPage from './pages/PrivateChatPage';
 import FindPeoplePage from './pages/FindPeoplePage';
 import GuidePage from './pages/GuidePage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import AIChatPage from './pages/AIChatPage';
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem('alzheimer_user'));
@@ -175,6 +177,8 @@ function App() {
                     <Route path="report-umore/:userId" element={<ReportUmorePage />} />
                     <Route path="users" element={<UsersPage />} />
                     <Route path="guida" element={<GuidePage />} />
+                    <Route path="analytics" element={<AnalyticsPage />} />
+                    <Route path="ai-chat" element={<AIChatPage />} />
                 </Route>
 
                 {/* Fallback per rotte inesistenti o redirect email (es. /confirm) */}

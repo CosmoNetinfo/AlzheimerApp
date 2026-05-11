@@ -24,6 +24,12 @@ const ProfilePage = () => {
     const [savingBio, setSavingBio] = useState(false);
     const [patientEmail, setPatientEmail] = useState("");
     const [associating, setAssociating] = useState(false);
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [tempName, setTempName] = useState("");
+    const [tempSurname, setTempSurname] = useState("");
+    const [savingName, setSavingName] = useState(false);
+    const [privacySettings, setPrivacySettings] = useState({ hide_location: false, hide_email: false });
+    const [savingPrivacy, setSavingPrivacy] = useState(false);
     const fileInputRef = useRef(null);
 
     const isPatient = user?.role === 'patient';
@@ -68,6 +74,7 @@ const ProfilePage = () => {
                         ...data,
                         photo: data.photo_url
                     });
+                    if (data.privacy_settings) setPrivacySettings(data.privacy_settings);
                 } else if (isOwnProfile && loggedInUser) {
                     // SELF-HEALING: Se è il proprio profilo ma manca nel DB, crealo
                     console.log("Profile missing, creating fallback...");
@@ -272,6 +279,43 @@ const ProfilePage = () => {
         } finally {
             setSavingBio(false);
         }
+    };
+
+    const handleSaveName = async () => {
+        if (!tempName.trim()) return;
+        setSavingName(true);
+        try {
+            const profileId = user.id;
+            const { error } = await supabase.from('profiles').update({ 
+                name: tempName.trim(), 
+                surname: tempSurname.trim() 
+            }).eq('id', profileId);
+            if (error) throw error;
+            
+            const updated = { ...user, name: tempName.trim(), surname: tempSurname.trim() };
+            setUser(updated);
+            localStorage.setItem('alzheimer_user', JSON.stringify(updated));
+            setIsEditingName(false);
+            window.dispatchEvent(new Event('storage'));
+        } catch (err) {
+            alert('Errore aggiornamento nome.');
+        } finally {
+            setSavingName(false);
+        }
+    };
+
+    const handleTogglePrivacy = async (key) => {
+        const newVal = !privacySettings[key];
+        const updatedSettings = { ...privacySettings, [key]: newVal };
+        setPrivacySettings(updatedSettings);
+        setSavingPrivacy(true);
+        try {
+            await supabase.from('profiles').update({ 
+                privacy_settings: updatedSettings 
+            }).eq('id', user.id);
+            const storedUser = JSON.parse(localStorage.getItem('alzheimer_user') || '{}');
+            localStorage.setItem('alzheimer_user', JSON.stringify({ ...storedUser, privacy_settings: updatedSettings }));
+        } catch (e) {} finally { setSavingPrivacy(false); }
     };
 
     const handleAssociatePatient = async () => {
@@ -586,19 +630,28 @@ const ProfilePage = () => {
                         )}
                     </button>
                 </div>
-                <h1 style={styles.name}>
-                    {user.name} {user.surname}
-                    <span style={{ 
-                        display: 'inline-block', 
-                        width: '10px', 
-                        height: '10px', 
-                        borderRadius: '50%', 
-                        backgroundColor: (user.last_active && Math.abs(new Date() - new Date(user.last_active)) < 600000) ? '#10B981' : '#EF4444', 
-                        marginLeft: '8px',
-                        boxShadow: `0 0 5px ${(user.last_active && Math.abs(new Date() - new Date(user.last_active)) < 600000) ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)'}`
-                    }} title={user.last_active ? `Ultimo segnale: ${new Date(user.last_active).toLocaleString()}` : 'Mai connesso'} />
-                    {currentMood && <span style={styles.moodEmoji}>{getMoodEmoji(currentMood)}</span>}
-                </h1>
+                {isEditingName ? (
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                        <input style={{ ...styles.input, width: '45%' }} value={tempName} onChange={e => setTempName(e.target.value)} placeholder="Nome" />
+                        <input style={{ ...styles.input, width: '45%' }} value={tempSurname} onChange={e => setTempSurname(e.target.value)} placeholder="Cognome" />
+                        <button onClick={handleSaveName} style={{ border: 'none', background: 'var(--color-primary)', color: 'white', borderRadius: '12px', padding: '0 12px' }}><AppIcon name="badge-check" size={18} color="white" /></button>
+                    </div>
+                ) : (
+                    <h1 style={styles.name}>
+                        {user.name} {user.surname}
+                        {isOwnProfile && <button onClick={() => { setTempName(user.name); setTempSurname(user.surname); setIsEditingName(true); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><AppIcon name="pencil" size={16} color="primary" /></button>}
+                        <span style={{ 
+                            display: 'inline-block', 
+                            width: '10px', 
+                            height: '10px', 
+                            borderRadius: '50%', 
+                            backgroundColor: (user.last_active && Math.abs(new Date() - new Date(user.last_active)) < 600000) ? '#10B981' : '#EF4444', 
+                            marginLeft: '8px',
+                            boxShadow: `0 0 5px ${(user.last_active && Math.abs(new Date() - new Date(user.last_active)) < 600000) ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)'}`
+                        }} title={user.last_active ? `Ultimo segnale: ${new Date(user.last_active).toLocaleString()}` : 'Mai connesso'} />
+                        {currentMood && <span style={styles.moodEmoji}>{getMoodEmoji(currentMood)}</span>}
+                    </h1>
+                )}
                 <div style={{ color: '#999', fontSize: '10px', marginTop: '-10px', marginBottom: '10px' }}>
                     ID: {user.id?.substring(0,8)}... | Last: {user.last_active ? new Date(user.last_active).toLocaleTimeString() : 'null'}
                 </div>
@@ -771,7 +824,11 @@ const ProfilePage = () => {
                 <div style={styles.infoRow}>
                     <AppIcon name="map-marker" size={20} color="primary" />
                     <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>{user?.location || 'Posizione non impostata'}</span>
+                        <span>
+                            {isOwnProfile || !privacySettings?.hide_location 
+                                ? (user?.location || 'Posizione non impostata') 
+                                : 'Posizione nascosta'}
+                        </span>
                         {isOwnProfile && (
                             <button 
                                 onClick={handleUpdateLocation} 
@@ -797,6 +854,31 @@ const ProfilePage = () => {
                     <span>{user.created_at ? `Iscritto il ${new Date(user.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}` : 'Data non disponibile'}</span>
                 </div>
             </div>
+
+            {/* Privacy Settings Card (Only for own profile) */}
+            {isOwnProfile && (
+                <div style={styles.infoCard}>
+                    <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <AppIcon name="lock" size={18} color="primary" /> Impostazioni Privacy
+                    </h3>
+                    <div style={{ ...styles.infoRow, justifyContent: 'space-between' }}>
+                        <span>Nascondi la mia posizione</span>
+                        <input 
+                            type="checkbox" 
+                            checked={privacySettings.hide_location} 
+                            onChange={() => handleTogglePrivacy('hide_location')} 
+                        />
+                    </div>
+                    <div style={{ ...styles.infoRow, borderBottom: 'none', justifyContent: 'space-between' }}>
+                        <span>Nascondi la mia email</span>
+                        <input 
+                            type="checkbox" 
+                            checked={privacySettings.hide_email} 
+                            onChange={() => handleTogglePrivacy('hide_email')} 
+                        />
+                    </div>
+                </div>
+            )}
             
             {/* Attività Recenti Card */}
             <div style={styles.infoCard}>

@@ -11,11 +11,16 @@ const FeedPage = () => {
     const [selectedImage, setSelectedImage] = useState(null);
     const [editingPostId, setEditingPostId] = useState(null);
     const [editingText, setEditingText] = useState('');
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editingCommentText, setEditingCommentText] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [roleFilter, setRoleFilter] = useState('all');
+    const [activeHashtag, setActiveHashtag] = useState(null);
     const [enlargedImage, setEnlargedImage] = useState(null);
     const [showCommentsFor, setShowCommentsFor] = useState(null);
     const [comments, setComments] = useState({});
     const [newCommentText, setNewCommentText] = useState('');
-    const [userMoods, setUserMoods] = useState({}); // { author_id: mood }
+    const [userMoods, setUserMoods] = useState({}); // { author_id: { mood, role } }
     const fileInputRef = useRef(null);
     const postTextareaRef = useRef(null);
     const commentInputRefs = useRef({});
@@ -48,13 +53,37 @@ const FeedPage = () => {
 
     const renderTextWithLinks = (text) => {
         if (!text) return null;
+        // Regex for URLs and Hashtags
         const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const hashtagRegex = /(#[a-zA-Z0-9_]+)/g;
+        
+        // Split by URLs first
         const parts = text.split(urlRegex);
         return parts.map((part, i) => {
             if (part.match(urlRegex)) {
-                return <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>{part}</a>;
+                return <a key={`url-${i}`} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>{part}</a>;
             }
-            return part;
+            
+            // Further split by hashtags
+            const subParts = part.split(hashtagRegex);
+            return subParts.map((subPart, j) => {
+                if (subPart.match(hashtagRegex)) {
+                    return (
+                        <span 
+                            key={`tag-${i}-${j}`} 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveHashtag(subPart);
+                                setSearchQuery('');
+                            }}
+                            style={{ color: 'var(--color-primary)', fontWeight: 'bold', cursor: 'pointer' }}
+                        >
+                            {subPart}
+                        </span>
+                    );
+                }
+                return subPart;
+            });
         });
     };
 
@@ -68,7 +97,11 @@ const FeedPage = () => {
         const postsChannel = supabase
             .channel('posts-realtime')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, (payload) => {
-                if (payload.eventType === 'INSERT') setPosts(prev => [{ ...payload.new, comment_count: 0 }, ...prev]);
+                if (payload.eventType === 'INSERT') {
+                    const newPost = { ...payload.new, comment_count: 0 };
+                    setPosts(prev => [newPost, ...prev]);
+                    fetchUserMoods([newPost.author_id]);
+                }
                 else if (payload.eventType === 'UPDATE') setPosts(prev => prev.map(p => p.id === payload.new.id ? { ...p, ...payload.new } : p));
                 else if (payload.eventType === 'DELETE') setPosts(prev => prev.filter(p => p.id !== payload.old.id));
             })
@@ -77,24 +110,25 @@ const FeedPage = () => {
         // Realtime Comments
         const commentsChannel = supabase
             .channel('comments-realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
-                const newComment = payload.new;
-                setComments(prev => {
-                    const existingComments = prev[newComment.post_id] || [];
-                    if (existingComments.some(c => c.id === newComment.id)) {
-                        return prev;
-                    }
-                    return {
-                        ...prev,
-                        [newComment.post_id]: [...existingComments, newComment]
-                    };
-                });
-                setPosts(prev => prev.map(p => {
-                    if (p.id === newComment.post_id) {
-                        return { ...p, comment_count: (p.comment_count || 0) + 1 };
-                    }
-                    return p;
-                }));
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, (payload) => {
+                if (payload.eventType === 'INSERT') {
+                    const newComment = payload.new;
+                    setComments(prev => {
+                        const existingComments = prev[newComment.post_id] || [];
+                        if (existingComments.some(c => c.id === newComment.id)) return prev;
+                        return { ...prev, [newComment.post_id]: [...existingComments, newComment] };
+                    });
+                    setPosts(prev => prev.map(p => p.id === newComment.post_id ? { ...p, comment_count: (p.comment_count || 0) + 1 } : p));
+                } else if (payload.eventType === 'UPDATE') {
+                    setComments(prev => {
+                        const postComments = prev[payload.new.post_id] || [];
+                        return { ...prev, [payload.new.post_id]: postComments.map(c => c.id === payload.new.id ? payload.new : c) };
+                    });
+                } else if (payload.eventType === 'DELETE') {
+                    // Note: delete payload.old contains only ID usually, but post_id might be needed to update count.
+                    // Simplified: refresh all comments for that post or handle globally.
+                    fetchAllComments();
+                }
             })
             .subscribe();
 
@@ -113,7 +147,7 @@ const FeedPage = () => {
                 .in('id', authorIds);
             
             if (!error && data) {
-                const moodsMap = {};
+                const moodsMap = { ...userMoods };
                 data.forEach(profile => {
                     moodsMap[profile.id] = { mood: profile.current_mood, role: profile.role };
                 });
@@ -157,47 +191,21 @@ const FeedPage = () => {
 
     const fetchAllComments = async () => {
         try {
-            // Carica TUTTI i commenti in una sola query
             const { data, error } = await supabase
                 .from('comments')
                 .select('*')
                 .order('created_at', { ascending: true });
             
             if (!error && data) {
-                // Raggruppa i commenti per post_id
                 const commentsByPost = {};
                 data.forEach(comment => {
-                    if (!commentsByPost[comment.post_id]) {
-                        commentsByPost[comment.post_id] = [];
-                    }
+                    if (!commentsByPost[comment.post_id]) commentsByPost[comment.post_id] = [];
                     commentsByPost[comment.post_id].push(comment);
                 });
                 setComments(commentsByPost);
             }
         } catch (e) {
             console.error("Errore fetch commenti:", e);
-        }
-    };
-
-    const fetchComments = async (postId) => {
-        if (comments[postId]) return; // Evita fetch doppi
-        const { data, error } = await supabase
-            .from('comments')
-            .select('*')
-            .eq('post_id', postId)
-            .order('created_at', { ascending: true });
-        
-        if (!error && data) {
-            setComments(prev => ({ ...prev, [postId]: data }));
-        }
-    };
-
-    const toggleComments = (postId) => {
-        if (showCommentsFor === postId) {
-            setShowCommentsFor(null);
-        } else {
-            setShowCommentsFor(postId);
-            fetchComments(postId);
         }
     };
 
@@ -217,30 +225,42 @@ const FeedPage = () => {
             .insert([commentObj], { returning: 'representation' });
 
         if (error) {
-            console.error("Errore salvataggio commento:", error);
             alert("Errore nel salvare il commento: " + error.message);
         } else {
             setNewCommentText('');
-            if (inserted?.[0]) {
-                setComments(prev => ({
-                    ...prev,
-                    [postId]: [...(prev[postId] || []), inserted[0]]
-                }));
-                setPosts(prev => prev.map(p => p.id === postId ? { ...p, comment_count: (p.comment_count || 0) + 1 } : p));
-                
-                // Reset height of the comment textarea
-                const textarea = commentInputRefs.current[postId];
-                if (textarea) {
-                    textarea.style.height = 'inherit';
-                }
-            }
+            // UI updates via realtime
         }
     };
 
-    const handleLike = async (postId, currentLikes) => {
-        if (likedPosts.includes(postId)) return; // Evita like multipli dallo stesso utente locale
+    const updateComment = async (commentId, postId) => {
+        if (!editingCommentText.trim()) return;
+        try {
+            const { error } = await supabase
+                .from('comments')
+                .update({ text: editingCommentText.trim() })
+                .eq('id', commentId);
+            
+            if (error) throw error;
+            setEditingCommentId(null);
+            setEditingCommentText('');
+        } catch (e) {
+            alert("Errore nell'aggiornamento.");
+        }
+    };
 
-        // Ottimismo: aggiorna subito UI
+    const deleteComment = async (commentId, postId) => {
+        if (!window.confirm("Eliminare il commento?")) return;
+        try { 
+            await supabase.from('comments').delete().eq('id', commentId); 
+            // Update local count immediately for better UX
+            setPosts(prev => prev.map(p => p.id === postId ? { ...p, comment_count: Math.max(0, (p.comment_count || 1) - 1) } : p));
+            fetchAllComments();
+        } catch (e) {}
+    };
+
+    const handleLike = async (postId, currentLikes) => {
+        if (likedPosts.includes(postId)) return;
+
         setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: (p.likes || 0) + 1 } : p));
         setLikedPosts(prev => [...prev, postId]);
 
@@ -249,34 +269,10 @@ const FeedPage = () => {
                 .from('posts')
                 .update({ likes: (currentLikes || 0) + 1 })
                 .eq('id', postId);
-            
             if (error) throw error;
         } catch (e) {
-            console.error("Errore nel mettere like", e);
-            // Revert in caso di errore
             setLikedPosts(prev => prev.filter(id => id !== postId));
             fetchPosts(); 
-        }
-    };
-
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width; let height = img.height; const max_size = 1024;
-                    if (width > height) { if (width > max_size) { height *= max_size / width; width = max_size; } }
-                    else { if (height > max_size) { width *= max_size / height; height = max_size; } }
-                    canvas.width = width; canvas.height = height;
-                    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
-                    setSelectedImage(canvas.toDataURL('image/jpeg', 0.8));
-                };
-                img.src = reader.result;
-            };
-            reader.readAsDataURL(file);
         }
     };
 
@@ -293,19 +289,12 @@ const FeedPage = () => {
         
         setNewPostText(''); 
         setSelectedImage(null);
-        if (postTextareaRef.current) {
-            postTextareaRef.current.style.height = 'inherit';
-        }
+        if (postTextareaRef.current) postTextareaRef.current.style.height = 'inherit';
         
         try { 
             const { error } = await supabase.from('posts').insert([newPostObj]); 
-            if (error) {
-                console.error("Errore Supabase inserimento post:", error);
-                alert("Errore nel salvataggio: " + error.message);
-            }
-        } catch (e) {
-            console.error("Errore catastrofico creazione post:", e);
-        }
+            if (error) alert("Errore nel salvataggio: " + error.message);
+        } catch (e) {}
     };
 
     const updatePost = async (postId) => {
@@ -315,13 +304,10 @@ const FeedPage = () => {
                 .from('posts')
                 .update({ text: editingText.trim() })
                 .eq('id', postId);
-            
             if (error) throw error;
             setEditingPostId(null);
             setEditingText('');
-            // UI si aggiorna via realtime o fetch
         } catch (e) {
-            console.error("Errore aggiornamento post:", e);
             alert("Errore nell'aggiornamento.");
         }
     };
@@ -331,82 +317,88 @@ const FeedPage = () => {
         try { await supabase.from('posts').delete().eq('id', postId); } catch (e) {}
     };
 
+    // Filter logic
+    const filteredPosts = posts.filter(post => {
+        const matchesSearch = !searchQuery || post.text.toLowerCase().includes(searchQuery.toLowerCase()) || post.author.toLowerCase().includes(searchQuery.toLowerCase());
+        const authorRole = userMoods[post.author_id]?.role || 'user';
+        const matchesRole = roleFilter === 'all' || authorRole === roleFilter;
+        const matchesHashtag = !activeHashtag || post.text.toLowerCase().includes(activeHashtag.toLowerCase());
+        return matchesSearch && matchesRole && matchesHashtag;
+    });
+
     const styles = {
         container: { width: '100%', maxWidth: '100%', minWidth: 0, backgroundColor: 'var(--color-bg-primary)', minHeight: '100%', padding: '0 14px 100px 14px', boxSizing: 'border-box', overflowX: 'hidden' },
         stickyHeader: { position: 'relative', backgroundColor: 'var(--color-bg-primary)', padding: '12px 0 1px 0', maxWidth: '100%' },
+        searchBar: { display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'white', padding: '8px 16px', borderRadius: '12px', boxShadow: 'var(--card-shadow)', marginBottom: '12px' },
+        filterRow: { display: 'flex', gap: '8px', overflowX: 'auto', padding: '4px 0 16px 0', scrollbarWidth: 'none' },
+        filterChip: (active) => ({ 
+            padding: '6px 14px', 
+            borderRadius: '20px', 
+            backgroundColor: active ? 'var(--color-primary)' : 'white', 
+            color: active ? 'white' : '#666', 
+            fontSize: '13px', 
+            fontWeight: 'bold', 
+            border: 'none', 
+            cursor: 'pointer', 
+            whiteSpace: 'nowrap',
+            boxShadow: 'var(--card-shadow)'
+        }),
         card: { backgroundColor: '#fff', margin: '0 0 var(--section-gap) 0', borderRadius: 'var(--card-radius)', padding: 'var(--content-padding-x)', boxShadow: 'var(--card-shadow)', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
-        lightbox: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, cursor: 'pointer', padding: '20px', boxSizing: 'border-box' },
-        avatar: (mood) => ({ 
-            width: '40px', 
-            height: '40px', 
-            borderRadius: '50%', 
-            backgroundColor: 'var(--color-primary)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            color: 'white', 
-            fontWeight: 'bold', 
-            overflow: 'hidden',
-            border: `3px solid ${getMoodColor(mood)}`,
-            boxShadow: `0 2px 8px ${getMoodColor(mood)}40`,
-            transition: 'all 0.3s ease',
-        }),
-        avatarSmall: (mood) => ({ 
-            width: '32px', 
-            height: '32px', 
-            borderRadius: '50%', 
-            backgroundColor: 'var(--color-primary)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            color: 'white', 
-            fontWeight: 'bold', 
-            overflow: 'hidden', 
-            fontSize: '12px',
-            border: `2px solid ${getMoodColor(mood)}`,
-            boxShadow: `0 2px 6px ${getMoodColor(mood)}40`,
-            transition: 'all 0.3s ease',
-        }),
+        avatar: (mood) => ({ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', overflow: 'hidden', border: `3px solid ${getMoodColor(mood)}`, boxShadow: `0 2px 8px ${getMoodColor(mood)}40`, transition: 'all 0.3s ease' }),
+        avatarSmall: (mood) => ({ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', overflow: 'hidden', fontSize: '12px', border: `2px solid ${getMoodColor(mood)}`, boxShadow: `0 2px 6px ${getMoodColor(mood)}40`, transition: 'all 0.3s ease' }),
         avatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
         input: { flex: 1, minWidth: 0, maxWidth: '100%', backgroundColor: '#F3F4F6', border: 'none', borderRadius: '22px', padding: '10px 16px', fontSize: '15px', outline: 'none' },
         btnPrimary: { backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer' },
-        postImageWrap: { width: '100%', aspectRatio: '4/3', overflow: 'hidden', borderRadius: 'var(--card-radius)', margin: '8px 0', cursor: 'zoom-in', display: 'block', backgroundColor: '#f0f0f0' },
-        postImage: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
         actionBtn: { background: 'none', border: 'none', color: 'var(--color-primary-dark)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600', fontSize: '14px' },
-        commentSection: { marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f0f0f0' },
-        comment: { display: 'flex', gap: '10px', marginBottom: '10px' },
-        commentBubble: { backgroundColor: '#F3F4F6', padding: '8px 12px', borderRadius: 'var(--card-radius)', flex: 1, minWidth: 0, wordBreak: 'break-word', overflowWrap: 'break-word' },
-        commentAuthor: { fontWeight: '700', fontSize: '13px', color: 'var(--color-primary-dark)' },
-        commentText: { fontSize: '14px', color: '#333', textAlign: 'left', wordBreak: 'break-word' },
-        statsBar: { display: 'flex', justifyContent: 'space-between', padding: '8px 4px', borderBottom: '1px solid #f9f9f9', marginBottom: '8px', fontSize: '13px', color: '#666' }
+        commentBubble: { backgroundColor: '#F3F4F6', padding: '8px 12px', borderRadius: 'var(--card-radius)', flex: 1, minWidth: 0, wordBreak: 'break-word' },
+        hashtagBadge: { backgroundColor: 'var(--color-accent)', color: 'var(--color-primary)', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content', marginBottom: '8px' }
     };
 
     return (
         <div style={styles.container} className="last-scroll-block">
             {enlargedImage && (
-                <div style={styles.lightbox} onClick={() => setEnlargedImage(null)}>
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, cursor: 'pointer', padding: '20px' }} onClick={() => setEnlargedImage(null)}>
                     <img src={enlargedImage} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="Fullscreen" />
                 </div>
             )}
 
-            {/* Creazione Post - Sticky */}
+            {/* Header: Search and Filters */}
             <div style={styles.stickyHeader}>
+                <div style={styles.searchBar}>
+                    <AppIcon name="search" size={18} color="#999" />
+                    <input 
+                        style={{ border: 'none', outline: 'none', flex: 1, fontSize: '14px' }} 
+                        placeholder="Cerca post o autori..." 
+                        value={searchQuery}
+                        onChange={(e) => { setSearchQuery(e.target.value); setActiveHashtag(null); }}
+                    />
+                    {searchQuery && <X size={16} color="#999" style={{cursor:'pointer'}} onClick={() => setSearchQuery('')} />}
+                </div>
+
+                <div style={styles.filterRow} className="no-scrollbar">
+                    <button style={styles.filterChip(roleFilter === 'all')} onClick={() => setRoleFilter('all')}>Tutti</button>
+                    <button style={styles.filterChip(roleFilter === 'healthcare')} onClick={() => setRoleFilter('healthcare')}>Dottori</button>
+                    <button style={styles.filterChip(roleFilter === 'patient')} onClick={() => setRoleFilter('patient')}>Pazienti</button>
+                    <button style={styles.filterChip(roleFilter === 'caregiver')} onClick={() => setRoleFilter('caregiver')}>Caregiver</button>
+                    <button style={styles.filterChip(roleFilter === 'family')} onClick={() => setRoleFilter('family')}>Famiglia</button>
+                </div>
+
+                {activeHashtag && (
+                    <div style={styles.hashtagBadge}>
+                        <span>Mostrando {activeHashtag}</span>
+                        <X size={14} style={{cursor:'pointer'}} onClick={() => setActiveHashtag(null)} />
+                    </div>
+                )}
+
+                {/* Creazione Post */}
                 <div style={styles.card}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                        <div style={styles.avatar(userMoods[user.id || (user.name + (user.surname || ''))]?.mood)}>
-                            {user.photo && typeof user.photo === 'string' && user.photo.startsWith('http') ? <img src={user.photo} style={styles.avatarImg} alt="Profilo" /> : user.name[0]}
+                        <div style={styles.avatar(userMoods[user.id]?.mood)}>
+                            {user.photo ? <img src={user.photo} style={styles.avatarImg} alt="Profilo" /> : user.name[0]}
                         </div>
                         <textarea 
                             ref={postTextareaRef}
-                            style={{
-                                ...styles.input, 
-                                resize: 'none', 
-                                overflow: 'hidden', 
-                                minHeight: '42px', 
-                                borderRadius: '15px',
-                                fontFamily: 'inherit',
-                                lineHeight: '1.4'
-                            }} 
+                            style={{ ...styles.input, resize: 'none', overflow: 'hidden', minHeight: '42px', borderRadius: '15px', fontFamily: 'inherit' }} 
                             placeholder={`A che pensi, ${user.name}?`} 
                             value={newPostText} 
                             onChange={(e) => {
@@ -417,175 +409,136 @@ const FeedPage = () => {
                         />
                     </div>
                     {selectedImage && (
-                        <div style={{ position: 'relative', marginBottom: '12px', maxWidth: '100%' }}>
-                            <img src={selectedImage} style={{ width: '100%', maxWidth: '100%', borderRadius: '12px', display: 'block' }} alt="Preview" />
+                        <div style={{ position: 'relative', marginBottom: '12px' }}>
+                            <img src={selectedImage} style={{ width: '100%', borderRadius: '12px' }} alt="Preview" />
                             <button onClick={() => setSelectedImage(null)} style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', borderRadius: '50%', padding: '4px' }}><X size={16}/></button>
                         </div>
                     )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <button style={styles.actionBtn} onClick={() => fileInputRef.current.click()}><AppIcon name="picture" size={20} color="primary"/> Foto</button>
-                        <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleImageChange} />
+                        <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={(e) => {
+                             const file = e.target.files[0];
+                             if (file) {
+                                 const reader = new FileReader();
+                                 reader.onloadend = () => {
+                                     const img = new Image();
+                                     img.onload = () => {
+                                         const canvas = document.createElement('canvas');
+                                         let width = img.width; let height = img.height; const max_size = 1024;
+                                         if (width > height) { if (width > max_size) { height *= max_size / width; width = max_size; } }
+                                         else { if (height > max_size) { width *= max_size / height; height = max_size; } }
+                                         canvas.width = width; canvas.height = height;
+                                         const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+                                         setSelectedImage(canvas.toDataURL('image/jpeg', 0.8));
+                                     };
+                                     img.src = reader.result;
+                                 };
+                                 reader.readAsDataURL(file);
+                             }
+                        }} />
                         <button style={styles.btnPrimary} onClick={createPost}>Pubblica</button>
                     </div>
                 </div>
             </div>
 
             {/* Ciclo Post */}
-            {posts.map(post => {
+            {filteredPosts.map(post => {
                 const authorData = userMoods[post.author_id] || {};
-                const authorMood = authorData.mood;
-                const authorRole = authorData.role;
                 return (
                 <div key={post.id} style={styles.card}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                        <Link to={`/profilo/${post.author_id}`} style={{ display: 'flex', gap: '10px', minWidth: 0, flex: 1, textDecoration: 'none', color: 'inherit' }}>
-                            <div style={styles.avatar(authorMood)}>
-                                {post.author_photo && typeof post.author_photo === 'string' && post.author_photo.startsWith('http') ? <img src={post.author_photo} style={styles.avatarImg} alt="Autore" /> : (post.author?.[0] || 'U')}
+                        <Link to={`/profilo/${post.author_id}`} style={{ display: 'flex', gap: '10px', textDecoration: 'none', color: 'inherit' }}>
+                            <div style={styles.avatar(authorData.mood)}>
+                                {post.author_photo ? <img src={post.author_photo} style={styles.avatarImg} alt="Autore" /> : (post.author?.[0] || 'U')}
                             </div>
-                            <div style={{ minWidth: 0 }}>
+                            <div>
                                 <div style={{ fontWeight: '700', color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     {post.author}
-                                    {authorRole === 'admin' && <AppIcon name="crown" size={14} color="primary" />}
-                                    {authorRole === 'healthcare' && <AppIcon name="stethoscope" size={16} color="primary" />}
-                                    {authorMood && <span style={{ fontSize: '18px' }}>{getMoodEmoji(authorMood)}</span>}
+                                    {authorData.role === 'admin' && <AppIcon name="crown" size={14} color="primary" />}
+                                    {authorData.role === 'healthcare' && <AppIcon name="stethoscope" size={16} color="primary" />}
+                                    {authorData.mood && <span>{getMoodEmoji(authorData.mood)}</span>}
                                 </div>
                                 <div style={{ fontSize: '11px', color: '#999' }}>{new Date(post.created_at).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
                             </div>
                         </Link>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            {(post.author_id === user.id || user.role === 'admin' || user.role === 'moderator' || user.role === 'super_admin') && (
-                                <>
-                                    {editingPostId === post.id ? (
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <button onClick={() => setEditingPostId(null)} style={{ background: 'none', border: 'none', color: '#999', fontSize: '12px', fontWeight: 'bold' }}>Annulla</button>
-                                            <button onClick={() => updatePost(post.id)} style={{ background: 'var(--color-primary)', border: 'none', color: 'white', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>Salva</button>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <button style={{ background: 'none', border: 'none', padding: '4px' }} onClick={() => { setEditingPostId(post.id); setEditingText(post.text); }} aria-label="Modifica">
-                                                <AppIcon name="pencil" size={18} color="primary" />
-                                            </button>
-                                            <button style={{ background: 'none', border: 'none', padding: '4px' }} onClick={() => deletePost(post.id)} aria-label="Elimina">
-                                                <AppIcon name="trash" size={18} color="error" />
-                                            </button>
-                                        </>
-                                    )}
-                                </>
-                            )}
-                        </div>
+                        { (post.author_id === user.id || user.role === 'admin') && !editingPostId && (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button style={{ background: 'none', border: 'none' }} onClick={() => { setEditingPostId(post.id); setEditingText(post.text); }}><AppIcon name="pencil" size={18} color="primary" /></button>
+                                <button style={{ background: 'none', border: 'none' }} onClick={() => deletePost(post.id)}><AppIcon name="trash" size={18} color="error" /></button>
+                            </div>
+                        )}
                     </div>
 
                     {editingPostId === post.id ? (
-                        <textarea 
-                            autoFocus
-                            style={{
-                                ...styles.input, 
-                                width: '100%',
-                                resize: 'none', 
-                                overflow: 'hidden', 
-                                minHeight: '60px', 
-                                borderRadius: '12px',
-                                fontFamily: 'inherit',
-                                lineHeight: '1.4',
-                                marginBottom: '12px',
-                                backgroundColor: '#fff',
-                                border: '1px solid var(--color-primary-light)'
-                            }} 
-                            value={editingText} 
-                            onChange={(e) => {
-                                setEditingText(e.target.value);
-                                e.target.style.height = 'inherit';
-                                e.target.style.height = `${e.target.scrollHeight}px`;
-                            }}
-                            onFocus={(e) => {
-                                e.target.style.height = 'inherit';
-                                e.target.style.height = `${e.target.scrollHeight}px`;
-                            }}
-                        />
-                    ) : (
-                        <div style={{ fontSize: '16px', color: '#333', marginBottom: '8px', textAlign: 'left', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>
-                            {renderTextWithLinks(post.text)}
+                        <div style={{ marginBottom: '12px' }}>
+                            <textarea style={{ ...styles.input, width: '100%', minHeight: '60px' }} value={editingText} onChange={(e) => setEditingText(e.target.value)} />
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+                                <button onClick={() => setEditingPostId(null)} style={{ background: 'none', border: 'none', color: '#999', fontWeight: 'bold' }}>Annulla</button>
+                                <button onClick={() => updatePost(post.id)} style={styles.btnPrimary}>Salva</button>
+                            </div>
                         </div>
+                    ) : (
+                        <div style={{ fontSize: '16px', color: '#333', marginBottom: '8px', whiteSpace: 'pre-wrap' }}>{renderTextWithLinks(post.text)}</div>
                     )}
+                    
                     {post.image && (
-                        <div style={styles.postImageWrap} onClick={() => setEnlargedImage(post.image)}>
-                            <img src={post.image} style={styles.postImage} alt="Post" />
+                        <div style={{ width: '100%', aspectRatio: '4/3', overflow: 'hidden', borderRadius: '12px', margin: '8px 0', cursor: 'zoom-in' }} onClick={() => setEnlargedImage(post.image)}>
+                            <img src={post.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Post" />
                         </div>
                     )}
 
-                    {/* Barra Statistiche */}
-                    <div style={styles.statsBar}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f9f9f9', fontSize: '13px', color: '#666' }}>
                         <span>{post.likes || 0} Like</span>
                         <span onClick={() => toggleComments(post.id)} style={{cursor:'pointer'}}>{post.comment_count || 0} Commenti</span>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '20px', marginTop: '4px' }}>
+                    <div style={{ display: 'flex', gap: '20px', marginTop: '8px' }}>
                         <button style={styles.actionBtn} onClick={() => handleLike(post.id, post.likes)}>
-                            <AppIcon name="thumbs-up" size={18} color={likedPosts.includes(post.id) ? 'primary' : 'textSecondary'} />
-                            Mi piace
+                            <AppIcon name="thumbs-up" size={18} color={likedPosts.includes(post.id) ? 'primary' : 'textSecondary'} /> Mi piace
                         </button>
                         <button style={styles.actionBtn} onClick={() => toggleComments(post.id)}><AppIcon name="comments" size={18} color="primary"/> Commenta</button>
                     </div>
 
-                    {/* Sezione Commenti */}
                     {showCommentsFor === post.id && (
-                        <div style={styles.commentSection}>
+                        <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f0f0f0' }}>
                             {(comments[post.id] || []).map(comm => (
-                                <div key={comm.id} style={styles.comment}>
+                                <div key={comm.id} style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
                                     <div style={styles.avatarSmall()}>
-                                        {comm.author_photo && typeof comm.author_photo === 'string' && comm.author_photo.startsWith('http') ? <img src={comm.author_photo} style={styles.avatarImg} alt="C" /> : comm.author_name[0]}
+                                        {comm.author_photo ? <img src={comm.author_photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="C" /> : comm.author_name[0]}
                                     </div>
                                     <div style={styles.commentBubble}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                            <div style={styles.commentAuthor}>{comm.author_name}</div>
-                                            {(comm.author_id === user.id || user.role === 'admin' || user.role === 'moderator') && (
-                                                <button 
-                                                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', opacity: 0.6 }} 
-                                                    onClick={() => {
-                                                        if (window.confirm("Eliminare il commento?")) {
-                                                            supabase.from('comments').delete().eq('id', comm.id).then(() => fetchAllComments());
-                                                        }
-                                                    }}
-                                                >
-                                                    <X size={14} color="#ef4444" />
-                                                </button>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <div style={{ fontWeight: '700', fontSize: '13px' }}>{comm.author_name}</div>
+                                            {(comm.author_id === user.id || user.role === 'admin') && (
+                                                <div style={{ display: 'flex', gap: '6px' }}>
+                                                    <button style={{ background: 'none', border: 'none', opacity: 0.5 }} onClick={() => { setEditingCommentId(comm.id); setEditingCommentText(comm.text); }}><AppIcon name="pencil" size={12} color="primary"/></button>
+                                                    <button style={{ background: 'none', border: 'none', opacity: 0.5 }} onClick={() => deleteComment(comm.id, post.id)}><X size={12} color="#ef4444" /></button>
+                                                </div>
                                             )}
                                         </div>
-                                        <div style={styles.commentText}>{renderTextWithLinks(comm.text)}</div>
+                                        {editingCommentId === comm.id ? (
+                                            <div style={{ marginTop: '4px' }}>
+                                                <textarea style={{ ...styles.input, width: '100%', fontSize: '13px' }} value={editingCommentText} onChange={(e) => setEditingCommentText(e.target.value)} />
+                                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '4px' }}>
+                                                    <button onClick={() => setEditingCommentId(null)} style={{ background: 'none', border: 'none', fontSize: '11px' }}>Annulla</button>
+                                                    <button onClick={() => updateComment(comm.id, post.id)} style={{ background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '10px', padding: '2px 8px', fontSize: '11px' }}>Salva</button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div style={{ fontSize: '14px', color: '#333' }}>{renderTextWithLinks(comm.text)}</div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
-                            
                             <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                                <div style={styles.avatarSmall()}>
-                                    {user.photo && typeof user.photo === 'string' && user.photo.startsWith('http') ? <img src={user.photo} style={styles.avatarImg} alt="Me" /> : user.name[0]}
-                                </div>
                                 <textarea 
-                                    ref={el => commentInputRefs.current[post.id] = el}
-                                    style={{
-                                        ...styles.input, 
-                                        resize: 'none', 
-                                        overflow: 'hidden', 
-                                        minHeight: '38px', 
-                                        borderRadius: '15px',
-                                        fontFamily: 'inherit',
-                                        lineHeight: '1.4'
-                                    }} 
+                                    style={{ ...styles.input, minHeight: '38px' }} 
                                     placeholder="Scrivi un commento..." 
                                     value={newCommentText}
-                                    onChange={(e) => {
-                                        setNewCommentText(e.target.value);
-                                        e.target.style.height = 'inherit';
-                                        e.target.style.height = `${e.target.scrollHeight}px`;
-                                    }}
-                                    onKeyPress={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault();
-                                            addComment(post.id);
-                                        }
-                                    }}
+                                    onChange={(e) => setNewCommentText(e.target.value)}
+                                    onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment(post.id); } }}
                                 />
-                                <button style={{ border: 'none', background: 'none', color: 'var(--color-primary)' }} onClick={() => addComment(post.id)} aria-label="Invia"><AppIcon name="paper-plane" size={20} color="primary"/></button>
+                                <button style={{ border: 'none', background: 'none' }} onClick={() => addComment(post.id)}><AppIcon name="paper-plane" size={20} color="primary"/></button>
                             </div>
                         </div>
                     )}

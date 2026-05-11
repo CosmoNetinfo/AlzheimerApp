@@ -43,6 +43,8 @@ const Layout = () => {
         if (path.startsWith('/impostazioni')) return 'Impostazioni';
         if (path.startsWith('/report-umore')) return 'Report Umore';
         if (path.startsWith('/guida')) return 'Guida all\'Uso';
+        if (path.startsWith('/analytics')) return 'Analisi e Dati';
+        if (path.startsWith('/ai-chat')) return 'Assistente AI';
         if (path.startsWith('/users')) return 'Gestione Utenti';
         
         if (path === '/' || path === '') return 'Home';
