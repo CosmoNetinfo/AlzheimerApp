@@ -182,10 +182,10 @@ Creare una Progressive Web App (PWA) per supportare pazienti affetti da Alzheime
   - [ ] Test Android (Chrome, PWA installata)
   - [ ] Test notifiche push su tutti i device
   - [ ] Test mood tracking cross-device
-- [ ] **Gestione errori robusta**
+- [x] **Gestione errori robusta**
   - [ ] Offline mode (service worker)
   - [ ] Retry automatico chiamate API
-  - [ ] Toast notifications per feedback utente
+  - [x] Toast notifications per feedback utente
 - [ ] **Sicurezza**
   - [ ] Validazione input lato client
   - [ ] Sanitizzazione contenuti post/commenti
@@ -230,7 +230,7 @@ Creare una Progressive Web App (PWA) per supportare pazienti affetti da Alzheime
   - [ ] Foto gallery
 - [ ] **Accessibilità**
   - [ ] Screen reader optimization
-  - [ ] Contrasto alto
+  - [x] Contrasto alto
   - [ ] Navigazione tastiera completa
   - [ ] Voice commands
 

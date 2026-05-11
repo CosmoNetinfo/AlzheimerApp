@@ -123,11 +123,13 @@ function App() {
                 }
 
                 // 2. Aggiornamento dati se cambiati (es. ruolo)
+                const simulatedRole = localStorage.getItem('simulated_role');
                 const updatedUser = {
                     id: userId,
                     name: profile.name,
                     surname: profile.surname,
-                    role: profile.role,
+                    email: profile.email,
+                    role: simulatedRole || profile.role,
                     photo: profile.photo_url
                 };
 

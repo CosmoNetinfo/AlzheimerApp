@@ -51,8 +51,34 @@ const Layout = () => {
         return 'Memora';
     };
 
+    const simulatedRole = localStorage.getItem('simulated_role');
+
     return (
         <div className={`app-container${isFullPage ? ' full-page' : ''}`}>
+            {simulatedRole && (
+                <div style={{
+                    position: 'fixed',
+                    top: '14px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    zIndex: 10001,
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    border: '1px solid rgba(255,255,255,0.3)'
+                }}>
+                    <div style={{ width: '6px', height: '6px', backgroundColor: 'white', borderRadius: '50%' }} />
+                    SIMULAZIONE: {simulatedRole.toUpperCase()}
+                </div>
+            )}
             <Header title={getTitle(currentPath)} />
             <main className={`main-content${isFullPage ? ' full-page' : ''}${isChatPage ? ' full-page-fill' : ''}${isProfilePage ? ' page-profilo' : ''}${isGuidePage ? ' page-guida' : ''}`} style={{ paddingTop: 'var(--header-height)' }}>
                 <AnimatePresence mode="wait">

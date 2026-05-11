@@ -4,9 +4,11 @@ import { supabase } from '../../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { Bug, Activity, Terminal, Shield, RefreshCw, Users, Trash2 } from 'lucide-react';
 
+const ADMIN_EMAILS = ["admindany@gmail.com", "michele.mosca.7991@gmail.com"];
+
 const DebugConsole = () => {
     const [isVisible, setIsVisible] = useState(false);
-    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+    const [isAdminWhitelisted, setIsAdminWhitelisted] = useState(false);
     const logs = useDebugStore((state) => state.logs);
     const clearLogs = useDebugStore((state) => state.clearLogs);
     const getLogsAsText = useDebugStore((state) => state.getLogsAsText);
@@ -24,10 +26,11 @@ const DebugConsole = () => {
             if (userRaw) {
                 try {
                     const user = JSON.parse(userRaw);
-                    setIsSuperAdmin(user.role === 'super_admin');
+                    const isWhitelisted = ADMIN_EMAILS.includes(user.email);
+                    setIsAdminWhitelisted(isWhitelisted || user.role === 'super_admin');
                 } catch (err) {}
             } else {
-                setIsSuperAdmin(false);
+                setIsAdminWhitelisted(false);
             }
         };
         checkRole();
@@ -76,7 +79,7 @@ const DebugConsole = () => {
                 let currentIsAdmin = false;
                 try {
                     const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{}');
-                    currentIsAdmin = user.role === 'super_admin';
+                    currentIsAdmin = ADMIN_EMAILS.includes(user.email) || user.role === 'super_admin';
                 } catch(err){}
 
                 if (!currentIsAdmin) {
@@ -90,7 +93,7 @@ const DebugConsole = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isSuperAdmin]);
+    }, [isAdminWhitelisted]);
 
     const filteredLogs = logs.filter(log => {
         if (filter === 'all') return true;
@@ -136,8 +139,29 @@ const DebugConsole = () => {
         }
     };
 
-    // Se l'utente non è super admin, non mostriamo assolutamente nulla
-    if (!isSuperAdmin) return null;
+    const handleSwitchRole = (newRole) => {
+        if (!newRole) {
+            localStorage.removeItem('simulated_role');
+            alert('Ruolo originale ripristinato. L\'app si ricaricherà.');
+        } else {
+            localStorage.setItem('simulated_role', newRole);
+            alert(`Modalità simulazione: ${newRole}. L'app si ricaricherà.`);
+        }
+        
+        // Forza il ricaricamento del profilo in App.jsx e dell'intera UI
+        const userRaw = localStorage.getItem('alzheimer_user');
+        if (userRaw) {
+            const user = JSON.parse(userRaw);
+            // Non cambiamo il DB, solo il localStorage per questa sessione
+            // App.jsx si occuperà di mantenere il ruolo simulato al prossimo sync
+            localStorage.setItem('alzheimer_user', JSON.stringify({ ...user, role: newRole || 'super_admin' }));
+        }
+        
+        window.location.reload();
+    };
+
+    // Se l'utente non è in whitelist o non è super admin, non mostriamo assolutamente nulla
+    if (!isAdminWhitelisted) return null;
 
     return (
         <>
@@ -343,6 +367,45 @@ const DebugConsole = () => {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <h4 style={{ margin: '10px 0 5px 0', color: '#10b981', fontSize: '13px' }}>Simulazione Ruolo</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            <button 
+                                onClick={() => handleSwitchRole('patient')}
+                                style={{ padding: '8px', backgroundColor: '#374151', color: 'white', border: '1px solid #4b5563', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                            >
+                                Simula Paziente
+                            </button>
+                            <button 
+                                onClick={() => handleSwitchRole('caregiver')}
+                                style={{ padding: '8px', backgroundColor: '#374151', color: 'white', border: '1px solid #4b5563', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                            >
+                                Simula Caregiver
+                            </button>
+                            <button 
+                                onClick={() => handleSwitchRole('healthcare')}
+                                style={{ padding: '8px', backgroundColor: '#374151', color: 'white', border: '1px solid #4b5563', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                            >
+                                Simula Medico
+                            </button>
+                            <button 
+                                onClick={() => handleSwitchRole('family')}
+                                style={{ padding: '8px', backgroundColor: '#374151', color: 'white', border: '1px solid #4b5563', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                            >
+                                Simula Familiare
+                            </button>
+                        </div>
+                        
+                        {localStorage.getItem('simulated_role') && (
+                            <button 
+                                onClick={() => handleSwitchRole(null)}
+                                style={{ width: '100%', padding: '10px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', marginTop: '5px' }}
+                            >
+                                Ripristina Ruolo Originale
+                            </button>
+                        )}
+
+                        <hr style={{ border: 'none', borderTop: '1px solid #374151', margin: '10px 0' }} />
+
                         <button 
                             onClick={() => {
                                 if (window.confirm("Sei sicuro di voler resettare tutta la cache locale? Verrai disconnesso.")) {
@@ -356,7 +419,7 @@ const DebugConsole = () => {
                         </button>
                         
                         <p style={{ fontSize: '10px', color: '#9ca3af', textAlign: 'center', marginTop: '10px' }}>
-                            Solo il Super Admin ha accesso a queste funzioni. Usare con cautela.
+                            Accesso abilitato per il team di sviluppo. Usare con cautela.
                         </p>
                     </div>
                 </div>
