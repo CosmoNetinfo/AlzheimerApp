@@ -180,8 +180,7 @@ function App() {
     );
 }
 
-const DevTools = isDev
-    ? React.lazy(async () => {
+const DevTools = React.lazy(async () => {
         const [{ default: ErrorInterceptor }, { default: DebugConsole }] = await Promise.all([
             import('./components/DebugConsole/ErrorInterceptor'),
             import('./components/DebugConsole/DebugConsole'),
@@ -194,8 +193,7 @@ const DevTools = isDev
                 </>
             ),
         };
-    })
-    : null;
+    });
 
 const AppWrapper = () => (
     <GlobalErrorBoundary>
