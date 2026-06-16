@@ -324,7 +324,7 @@ const SettingsPage = () => {
 
       <div style={{ textAlign: "center", marginTop: "40px", color: "#888", fontSize: '0.75rem', lineHeight: "1.6" }}>
         Memora x Airalzh &copy; 2026<br />
-        Michele Mosca e Daniele Spalletti
+        Michele Mosca Web Designer e Daniele Spalletti Developer
       </div>
     </div>
   );
