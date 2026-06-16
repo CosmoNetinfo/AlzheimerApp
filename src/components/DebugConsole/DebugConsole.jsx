@@ -177,11 +177,12 @@ const DebugConsole = () => {
             {isVisible && (
                 <div style={{
                     position: 'fixed',
-                    bottom: '20px',
-                    right: '20px',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
             width: '90%',
             maxWidth: '500px',
-            height: '60vh',
+            height: '70vh',
             maxHeight: '600px',
             backgroundColor: '#1f2937',
             color: '#f3f4f6',

@@ -708,11 +708,13 @@ button:active {
     padding-right: var(--page-padding-x-mobile) !important;
   }
 
-  /* Solo chat di gruppo: main fisso, scroll interno ai messaggi */
+  /* Solo chat di gruppo/privata: main fisso, scroll interno ai messaggi */
   .main-content.full-page-fill {
+    padding-top: var(--header-height) !important;
     overflow: hidden !important;
     height: calc(100dvh - var(--header-height)) !important;
     max-height: calc(100dvh - var(--header-height)) !important;
+    min-height: 0 !important;
   }
 
   /* Padding solo sull'ultimo elemento: niente scalino, scroll fino a superare la navbar */
