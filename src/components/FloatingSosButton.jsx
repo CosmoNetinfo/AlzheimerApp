@@ -8,7 +8,7 @@ const SIZE = 58;
 const DRAG_THRESHOLD = 10;
 
 function getEffectiveRole() {
-  const simulated = isDev ? localStorage.getItem('simulated_role') : null;
+  const simulated = localStorage.getItem('simulated_role');
   const user = JSON.parse(localStorage.getItem('alzheimer_user') || '{}');
   return simulated || user.role;
 }

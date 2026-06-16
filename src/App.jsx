@@ -38,7 +38,7 @@ function App() {
 
                 if (!session) {
                     localStorage.removeItem('alzheimer_user');
-                    if (!isDev) localStorage.removeItem('simulated_role');
+                    localStorage.removeItem('simulated_role');
                     setIsAuthenticated(false);
                 } else {
                     setIsAuthenticated(true);
@@ -55,7 +55,7 @@ function App() {
                 setIsAuthenticated(!!session);
             } else if (event === 'SIGNED_OUT') {
                 localStorage.removeItem('alzheimer_user');
-                if (!isDev) localStorage.removeItem('simulated_role');
+                localStorage.removeItem('simulated_role');
                 setIsAuthenticated(false);
             }
         });
@@ -126,7 +126,7 @@ function App() {
                     return;
                 }
 
-                const simulatedRole = isDev ? localStorage.getItem('simulated_role') : null;
+                const simulatedRole = localStorage.getItem('simulated_role');
                 const updatedUser = {
                     id: userId,
                     name: profile.name,

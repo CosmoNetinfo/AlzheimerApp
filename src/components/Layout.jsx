@@ -55,7 +55,7 @@ const Layout = () => {
         return 'Memora';
     };
 
-    const simulatedRole = isDev ? localStorage.getItem('simulated_role') : null;
+    const simulatedRole = localStorage.getItem('simulated_role');
 
     return (
         <div className={`app-container${isFullPage ? ' full-page' : ''}`}>

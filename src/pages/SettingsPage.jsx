@@ -29,7 +29,7 @@ const SettingsPage = () => {
   const [isEditingSos, setIsEditingSos] = useState(false);
   const [tempSos, setTempSos] = useState(sosNumber);
 
-  const effectiveRole = (isDev && localStorage.getItem('simulated_role')) || user?.role;
+  const effectiveRole = localStorage.getItem('simulated_role') || user?.role;
   const isPatient = effectiveRole === 'patient';
 
   useEffect(() => {

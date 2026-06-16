@@ -37,7 +37,7 @@ const ProfilePage = () => {
 
     const getEffectiveRole = (dbRole) => {
         if (!isOwnProfile) return dbRole;
-        const simulated = isDev ? localStorage.getItem('simulated_role') : null;
+        const simulated = localStorage.getItem('simulated_role');
         return simulated || loggedInUser?.role || dbRole;
     };
 
