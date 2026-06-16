@@ -35,7 +35,7 @@ const Layout = () => {
     const isGroupChatPage = currentPath === '/chat' || currentPath.startsWith('/chat?');
     const isChatFillLayout = isGroupChatPage || isPrivateChatPage;
     const isProfilePage = currentPath.includes('profilo');
-    const hideTabBar = isPrivateChatPage;
+    const hideTabBar = false; // Always show TabBar as requested
     const isGuidePage = currentPath.includes('guida');
     
     const getTitle = (path) => {

@@ -626,16 +626,7 @@ const PrivateChatPage = () => {
                 <div ref={messagesEndRef} />
             </div>
 
-            <div style={{
-                padding: '12px 16px',
-                paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
-                backgroundColor: 'transparent',
-                display: 'flex',
-                justifyContent: 'center',
-                position: 'sticky',
-                bottom: 0,
-                zIndex: 100,
-            }}>
+            <div className="input-outer-wrapper">
                 {isRecording ? (
                     <div className="custom-chat-input" style={{ color: '#EF4444', justifyContent: 'space-between', padding: '0 15px', minHeight: '48px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
