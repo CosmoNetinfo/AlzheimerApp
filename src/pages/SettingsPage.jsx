@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  LogOut,
   ChevronLeft,
   ChevronRight,
+  Bug,
 } from "lucide-react";
 import AppIcon from "../components/AppIcon";
 import { supabase } from "../supabaseClient";
@@ -241,6 +243,21 @@ const SettingsPage = () => {
         </button>
         )}
       </div>
+
+      {['admin', 'super_admin', 'moderatore'].includes(user.role) || ['admindany@gmail.com', 'michele.mosca.7991@gmail.com'].includes(user.email) ? (
+        <>
+          <h3 style={styles.sectionLabel}>Sviluppatore</h3>
+          <div style={styles.menuCard}>
+            <button style={{ ...styles.menuItem, borderBottom: "none" }} onClick={() => window.dispatchEvent(new Event('toggle_debug_console'))}>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={styles.iconWrapper("#1F2937")}><Bug size={18} color="#10B981" /></div>
+                <span style={styles.itemLabel}>Console Debug</span>
+              </div>
+              <ChevronRight size={20} color="#ccc" />
+            </button>
+          </div>
+        </>
+      ) : null}
 
       {isDenied && (
         <div style={{ backgroundColor: '#FFFEEB', border: '1px solid #FFE58F', borderRadius: '16px', padding: '16px', marginBottom: '24px' }}>

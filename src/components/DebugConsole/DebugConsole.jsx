@@ -92,7 +92,12 @@ const DebugConsole = () => {
         };
 
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('toggle_debug_console', () => setIsVisible(v => !v));
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('toggle_debug_console', () => setIsVisible(v => !v));
+        };
     }, [isAdminWhitelisted]);
 
     const filteredLogs = logs.filter(log => {
@@ -165,34 +170,7 @@ const DebugConsole = () => {
 
     return (
         <>
-            {/* Pulsante flottante invisibile/semi-trasparente per Mobile & Desktop */}
-            {!isVisible && (
-                <button
-                    onClick={() => setIsVisible(true)}
-                    style={{
-                        position: 'fixed',
-                        bottom: '90px',
-                        left: '10px',
-                        width: '46px',
-                        height: '46px',
-                        borderRadius: '12px',
-                        backgroundColor: 'rgba(31, 41, 55, 0.8)',
-                        color: '#10b981',
-                        border: '1px solid rgba(16, 185, 129, 0.3)',
-                        zIndex: 99998,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backdropFilter: 'blur(8px)',
-                        boxShadow: '0 8px 16px rgba(0,0,0,0.3)',
-                        transition: 'all 0.2s ease',
-                    }}
-                    title="Console Super Admin"
-                >
-                    <Bug size={24} />
-                </button>
-            )}
+            {/* Il pulsante flottante è stato rimosso per essere inserito nelle Impostazioni */}
 
             {/* Debug Console UI */}
             {isVisible && (
